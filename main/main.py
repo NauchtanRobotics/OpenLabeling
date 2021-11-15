@@ -334,7 +334,7 @@ def get_xml_object_data(obj):
 
 
 def get_txt_object_data(obj, img_width, img_height):
-    classId, centerX, centerY, bbox_width, bbox_height = obj.split()
+    classId, centerX, centerY, bbox_width, bbox_height = obj.split()[0:5]
     bbox_width = float(bbox_width)
     bbox_height  = float(bbox_height)
     centerX = float(centerX)
