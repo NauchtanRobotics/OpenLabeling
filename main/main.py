@@ -968,7 +968,7 @@ if __name__ == '__main__':
     # load all images and videos (with multiple extensions) from a directory using OpenCV
     IMAGE_PATH_LIST = []
     VIDEO_NAME_DICT = {}
-    for f in sorted(os.listdir(INPUT_DIR), key = natural_sort_key):
+    for f in sorted(os.listdir(INPUT_DIR), key=natural_sort_key):
         f_path = os.path.join(INPUT_DIR, f)
         if os.path.isdir(f_path):
             # skip directories
@@ -1033,8 +1033,12 @@ if __name__ == '__main__':
     # The colors are in BGR order because we're using OpenCV
     class_rgb = [
         (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
-        (255, 0, 255), (192, 192, 192), (128, 128, 128), (128, 0, 0),
-        (128, 128, 0), (0, 128, 0), (128, 0, 128), (0, 128, 128), (0, 0, 128)]
+        (255, 0, 255), (50, 0, 255), (0, 50, 255), (255, 50, 0),
+        (255, 128, 0), (50, 255, 0), (255, 0, 128), (50, 128, 255), (50, 0, 255),
+        (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
+        (255, 0, 255), (50, 0, 255), (0, 50, 255), (255, 50, 0),
+        (255, 128, 0), (50, 255, 0), (255, 0, 128), (50, 128, 255), (50, 0, 255),
+    ]
     class_rgb = np.array(class_rgb)
     # If there are still more classes, add new colors randomly
     num_colors_missing = len(CLASS_LIST) - len(class_rgb)
@@ -1063,6 +1067,10 @@ if __name__ == '__main__':
     # loop
     while True:
         color = class_rgb[class_index].tolist()
+        if class_index >= 14:
+            line_thickness = 3
+        else:
+            line_thickness = 2
         # clone the img
         tmp_img = img.copy()
         height, width = tmp_img.shape[:2]
@@ -1077,7 +1085,7 @@ if __name__ == '__main__':
         font_scale = 0.6
         margin = 3
         text_width, text_height = cv2.getTextSize(class_name, font, font_scale, LINE_THICKNESS)[0]
-        tmp_img = cv2.rectangle(tmp_img, (mouse_x + LINE_THICKNESS, mouse_y - LINE_THICKNESS), (mouse_x + text_width + margin, mouse_y - text_height - margin), complement_bgr(color), -1)
+        tmp_img = cv2.rectangle(tmp_img, (mouse_x + line_thickness, mouse_y - line_thickness), (mouse_x + text_width + margin, mouse_y - text_height - margin), complement_bgr(color), -1)
         tmp_img = cv2.putText(tmp_img, class_name, (mouse_x + margin, mouse_y - margin), font, font_scale, color, LINE_THICKNESS, cv2.LINE_AA)
         # get annotation paths
         img_path = IMAGE_PATH_LIST[img_index]
