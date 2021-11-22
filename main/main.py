@@ -1084,7 +1084,7 @@ if __name__ == '__main__':
     display_text('Welcome!\n Press [h] for help.', 4000)
 
     # loop
-    while True:
+    while cv2.getWindowProperty(WINDOW_NAME, 0) >= 0:
         color = class_rgb[class_index].tolist()
         if class_index >= 14:
             line_thickness = 3
