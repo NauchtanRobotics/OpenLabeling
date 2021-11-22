@@ -4,7 +4,7 @@ import json
 import os
 import re
 
-import cv2
+from cv2 import cv2
 import numpy as np
 from tqdm import tqdm
 
@@ -28,6 +28,13 @@ cv2.destroyAllWindows()
 
 parser = argparse.ArgumentParser(description='Open-source image labeling tool')
 parser.add_argument('-i', '--input_dir', default='input', type=str, help='Path to input directory')
+parser.add_argument(
+    "-l",
+    "--files_list",
+    default="files_list",
+    nargs="+",
+    help="For restricting to selected files within input_dir",
+    )
 parser.add_argument('-o', '--output_dir', default='output', type=str, help='Path to output directory')
 parser.add_argument('-t', '--thickness', default='1', type=int, help='Bounding box and cross line thickness')
 parser.add_argument('--draw-from-PASCAL-files', action='store_true', help='Draw bounding boxes from the PASCAL files') # default YOLO
@@ -49,6 +56,10 @@ img = None
 img_objects = []
 
 INPUT_DIR  = args.input_dir
+if args.files_list and len(args.files_list) > 0:
+    LIST_FILES = args.files_list
+else:
+    LIST_FILES = None
 OUTPUT_DIR = args.output_dir
 N_FRAMES   = args.n_frames
 TRACKER_TYPE = args.tracker
@@ -92,7 +103,6 @@ point_2 = (-1, -1)
 # Check if a point belongs to a rectangle
 def pointInRect(pX, pY, rX_left, rY_top, rX_right, rY_bottom):
     return rX_left <= pX <= rX_right and rY_top <= pY <= rY_bottom
-
 
 
 # Class to deal with bbox resizing
@@ -189,11 +199,13 @@ class dragBBox:
             dragBBox.selected_object = None
             dragBBox.anchor_being_dragged = None
 
+
 def display_text(text, time):
     if WITH_QT:
         cv2.displayOverlay(WINDOW_NAME, text, time)
     else:
         print(text)
+
 
 def set_img_index(x):
     global img_index, img
@@ -258,6 +270,7 @@ def voc_format(class_name, point_1, point_2):
     items = map(str, [class_name, xmin, ymin, xmax, ymax])
     return items
 
+
 def findIndex(obj_to_find):
     #return [(ind, img_objects[ind].index(obj_to_find)) for ind in xrange(len(img_objects)) if item in img_objects[ind]]
     ind = -1
@@ -270,6 +283,7 @@ def findIndex(obj_to_find):
         ind_ = ind_+1
 
     return ind
+
 
 def write_xml(xml_str, xml_path):
     # remove blank text before prettifying the xml
@@ -968,7 +982,12 @@ if __name__ == '__main__':
     # load all images and videos (with multiple extensions) from a directory using OpenCV
     IMAGE_PATH_LIST = []
     VIDEO_NAME_DICT = {}
-    for f in sorted(os.listdir(INPUT_DIR), key=natural_sort_key):
+    if LIST_FILES:
+        image_file_names = LIST_FILES
+    else:
+        image_file_names = os.listdir(INPUT_DIR)
+
+    for f in sorted(image_file_names, key=natural_sort_key):
         f_path = os.path.join(INPUT_DIR, f)
         if os.path.isdir(f_path):
             # skip directories
