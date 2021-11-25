@@ -63,7 +63,7 @@ width, height = 0, 0
 class_index = 0
 img = None
 img_objects = []
-annotation_formats = {'PASCAL_VOC' : '.xml', 'YOLO_darknet' : '.txt'}
+annotation_formats = {'YOLO_darknet' : '.txt'}  # 'PASCAL_VOC' : '.xml',
 
 # change to the directory of this script
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -160,7 +160,7 @@ class dragBBox:
             dragBBox.selected_object = obj
 
     @staticmethod
-    def handler_mouse_move(eX, eY, width, height):
+    def handler_mouse_move(eX, eY):
         if dragBBox.selected_object is not None:
             class_name, x_left, y_top, x_right, y_bottom = dragBBox.selected_object
 
@@ -213,7 +213,7 @@ def display_text(text, time):
         print(text)
 
 
-def set_img_index(x):
+def load_image_at_index(x):
     global img_index, img, last_img_index, image_paths_list
     img_index = x
     img_path = image_paths_list[img_index]
@@ -491,10 +491,10 @@ def is_mouse_inside_delete_button():
 
 
 def edit_bbox(obj_to_edit, action):
-    ''' action = `delete`
+    """ action = `delete`
                  `change_class:new_class_index`
                  `resize_bbox:new_x_left:new_y_top:new_x_right:new_y_bottom`
-    '''
+    """
     global tracker_dir, img_index, image_paths_list, current_img_path, width, height
     if 'change_class' in action:
         new_class_index = int(action.split(':')[1])
@@ -511,10 +511,10 @@ def edit_bbox(obj_to_edit, action):
     bboxes_to_edit_dict[current_img_path] = obj_to_edit
 
     # 2. add elements to bboxes_to_edit_dict
-    '''
+    """
         If the bbox is in the json file then it was used by the video Tracker, hence,
         we must also edit the next predicted bboxes associated to the same `anchor_id`.
-    '''
+    """
     # if `current_img_path` is a frame from a video
     is_from_video, video_name = is_frame_from_video(current_img_path)
     if is_from_video:
@@ -1010,6 +1010,10 @@ def main(args):
     else:
         image_file_names = os.listdir(input_dir)
 
+    # create window
+    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_KEEPRATIO)
+    cv2.resizeWindow(WINDOW_NAME, 1000, 700)
+    cv2.setMouseCallback(WINDOW_NAME, mouse_listener)
     for f in sorted(image_file_names, key=natural_sort_key):
         f_path = os.path.join(input_dir, f)
         if os.path.isdir(f_path):
@@ -1057,25 +1061,25 @@ def main(args):
 
     # create empty annotation files for each image, if it doesn't exist already
     for img_path in image_paths_list:
-        # image info for the .xml file
-        test_img = cv2.imread(img_path)
         abs_path = os.path.abspath(img_path)
         folder_name = os.path.dirname(img_path)
         image_name = os.path.basename(img_path)
-        img_height, img_width, depth = (str(number) for number in test_img.shape)
 
         for ann_path in get_annotation_paths(img_path, annotation_formats):
             if not os.path.isfile(ann_path):
                 if '.txt' in ann_path:
                     open(ann_path, 'a').close()
                 elif '.xml' in ann_path:
+                    test_img = cv2.imread(img_path)
+                    img_height, img_width, depth = (str(number) for number in test_img.shape)
                     create_PASCAL_VOC_xml(ann_path, abs_path, folder_name, image_name, img_height, img_width, depth)
 
     class_index = last_class_index = len(CLASS_LIST) - 1
     img_index = 0
+    load_image_at_index(0)
+
     # Make the class colors the same each session
     # The colors are in BGR order because we're using OpenCV
-
     class_rgb = np.array(CLASS_RGB)
     # If there are still more classes, add new colors randomly
     num_colors_missing = len(CLASS_LIST) - len(class_rgb)
@@ -1083,20 +1087,14 @@ def main(args):
         more_colors = np.random.randint(0, 255+1, size=(num_colors_missing, 3))
         class_rgb = np.vstack([class_rgb, more_colors])
 
-    # create window
-    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_KEEPRATIO)
-    cv2.resizeWindow(WINDOW_NAME, 1000, 700)
-    cv2.setMouseCallback(WINDOW_NAME, mouse_listener)
-
     # selected image
-    cv2.createTrackbar(TRACKBAR_IMG, WINDOW_NAME, 0, last_img_index, set_img_index)
+    cv2.createTrackbar(TRACKBAR_IMG, WINDOW_NAME, 0, last_img_index, load_image_at_index)
 
     # selected class
     if last_class_index != 0:
         cv2.createTrackbar(TRACKBAR_CLASS, WINDOW_NAME, 0, last_class_index, set_class_index)
 
     # initialize
-    set_img_index(0)
     edges_on = False
     display_text('Welcome!\n Press [h] for help.', 4000)
 
@@ -1154,7 +1152,7 @@ def main(args):
                 # show next image key listener
                 elif pressed_key == ord('d'):
                     img_index = increase_index(img_index, last_img_index)
-                set_img_index(img_index)
+                load_image_at_index(img_index)
                 cv2.setTrackbarPos(TRACKBAR_IMG, WINDOW_NAME, img_index)
             elif pressed_key == ord('s') or pressed_key == ord('w'):
                 # change down current class key listener
