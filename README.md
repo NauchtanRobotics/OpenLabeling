@@ -7,9 +7,6 @@ Image labeling in multiple annotation formats:
 - [YOLO darknet](https://github.com/pjreddie/darknet)
 - ask for more (create a new issue)...
 
-<img src="https://media.giphy.com/media/l49JDgDSygJN369vW/giphy.gif" width="40%"><img src="https://media.giphy.com/media/3ohc1csRs9PoDgCeuk/giphy.gif" width="40%">
-<img src="https://media.giphy.com/media/3o752fXKwTJJkhXP32/giphy.gif" width="40%"><img src="https://media.giphy.com/media/3ohc11t9auzSo6fwLS/giphy.gif" width="40%">
-
 ## Citation
 
 This project was developed for the following paper, please consider citing it:
@@ -26,6 +23,7 @@ This project was developed for the following paper, please consider citing it:
 
 ## Latest Features
 
+- Nov 2021: GUI provided for selecting folder.
 - Jun 2019: Deep Learning Object Detection Model
 - May 2019: [ECCV2018] Distractor-aware Siamese Networks for Visual Object Tracking
 - Jan 2019: easy and quick bounding-boxe's resizing!
