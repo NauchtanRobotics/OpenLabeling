@@ -11,7 +11,7 @@ from tqdm import tqdm
 from lxml import etree
 import xml.etree.cElementTree as ET
 
-from open_labeling.load_classes import get_class_list
+from load_classes import get_class_list
 
 CLASS_RGB = [
         (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),

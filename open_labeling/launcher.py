@@ -12,7 +12,7 @@ else:
 
 
 def main():
-    print("\nBASE_DIR:", BASE_DIR)
+
     file_list_column = [
         [
             sg.Text("Image Folder"),
@@ -89,6 +89,10 @@ def main():
         #         pass
 
     # window.close()
+
+
+if __name__ == '__main__':
+    main()
 
 
 def test_main():
