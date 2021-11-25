@@ -1,5 +1,6 @@
 import sys
 import subprocess
+import threading
 import PySimpleGUI as sg
 from pathlib import Path
 
@@ -50,9 +51,19 @@ def main():
         # Folder name was filled in, make a list of files in the folder
         if event == "-FOLDER-":
             folder = values["-FOLDER-"]
-            cmd = [str(PYTHON_PATH), "run_app.py", '-i', folder, '-o', folder]
-            subprocess.run(cmd)
-            # window.close()
+
+            def call_run_app(folder):
+                cmd = [str(PYTHON_PATH), "run_app.py", '-i', folder, '-o', folder]
+                subprocess.run(cmd)
+
+            open_labeling_thread = threading.Thread(
+                target=call_run_app,  # Pointer to function that will launch OpenLabeling.
+                name="OpenLabelingMain",
+                args=[folder],
+            )
+            open_labeling_thread.start()
+
+            window.close()
             # try:
             #     # Get list of files in folder
             #     file_list = os.listdir(folder)
@@ -77,7 +88,7 @@ def main():
         #     except:
         #         pass
 
-    window.close()
+    # window.close()
 
 
 def test_main():
