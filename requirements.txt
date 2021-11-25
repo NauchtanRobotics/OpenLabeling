@@ -2,3 +2,4 @@ lxml==4.6.3
 numpy==1.21.2
 opencv-contrib-python==3.4.9.33
 tqdm==4.29.1
+PySimpleGUI

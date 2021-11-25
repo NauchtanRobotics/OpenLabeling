@@ -4,77 +4,97 @@ import json
 import os
 import re
 
-import cv2
+from cv2 import cv2
 import numpy as np
 from tqdm import tqdm
 
 from lxml import etree
 import xml.etree.cElementTree as ET
 
-from load_classes import get_class_list
+from open_labeling.load_classes import get_class_list
 
-
+CLASS_RGB = [
+        (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
+        (255, 0, 255), (50, 0, 255), (0, 50, 255), (255, 50, 0),
+        (255, 128, 0), (50, 255, 0), (255, 0, 128), (50, 128, 255), (50, 0, 255),
+        (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
+        (255, 0, 255), (50, 0, 255), (0, 50, 255), (255, 50, 0),
+        (255, 128, 0), (50, 255, 0), (255, 0, 128), (50, 128, 255), (50, 0, 255),
+    ]
+GUIDE_LINE_THICKNESS = 1
 CLASS_LIST = get_class_list()
-DELAY = 20 # keyboard delay (in milliseconds)
+DELAY = 20  # keyboard delay (in milliseconds)
 WITH_QT = False
+WINDOW_NAME    = 'OpenLabeling'
+TRACKBAR_IMG   = 'Image'
+TRACKBAR_CLASS = 'Class'
+
 try:
     cv2.namedWindow('Test')
     cv2.displayOverlay('Test', 'Test QT', 500)
     WITH_QT = True
 except cv2.error:
     print('-> Please ignore this error message\n')
+
 cv2.destroyAllWindows()
-
-
-parser = argparse.ArgumentParser(description='Open-source image labeling tool')
-parser.add_argument('-i', '--input_dir', default='input', type=str, help='Path to input directory')
-parser.add_argument('-o', '--output_dir', default='output', type=str, help='Path to output directory')
-parser.add_argument('-t', '--thickness', default='1', type=int, help='Bounding box and cross line thickness')
-parser.add_argument('--draw-from-PASCAL-files', action='store_true', help='Draw bounding boxes from the PASCAL files') # default YOLO
-'''
-tracker_types = ['CSRT', 'KCF','MOSSE', 'MIL', 'BOOSTING', 'MEDIANFLOW', 'TLD', 'GOTURN', 'DASIAMRPN']
-    Recomended tracker_type:
-        DASIAMRPN -> best
-        KCF -> KCF is usually very good (minimum OpenCV 3.1.0)
-        CSRT -> More accurate than KCF but slightly slower (minimum OpenCV 3.4.2)
-        MOSSE -> Less accurate than KCF but very fast (minimum OpenCV 3.4.1)
-'''
-parser.add_argument('--tracker', default='KCF', type=str, help="tracker_type being used: ['CSRT', 'KCF','MOSSE', 'MIL', 'BOOSTING', 'MEDIANFLOW', 'TLD', 'GOTURN', 'DASIAMRPN']")
-parser.add_argument('-n', '--n_frames', default='200', type=int, help='number of frames to track object for')
-args = parser.parse_args()
-
-class_index = 0
+current_img_path = None
+tracker_dir = "./"
+output_dir = "./"
+input_dir = "./"
 img_index = 0
-img = None
-img_objects = []
-
-INPUT_DIR  = args.input_dir
-OUTPUT_DIR = args.output_dir
-N_FRAMES   = args.n_frames
-TRACKER_TYPE = args.tracker
-
-if TRACKER_TYPE == "DASIAMRPN":
-    from dasiamrpn import dasiamrpn
-
-WINDOW_NAME    = 'OpenLabeling'
-TRACKBAR_IMG   = 'Image'
-TRACKBAR_CLASS = 'Class'
-
-annotation_formats = {'PASCAL_VOC' : '.xml', 'YOLO_darknet' : '.txt'}
-TRACKER_DIR = os.path.join(OUTPUT_DIR, '.tracker')
-
-DRAW_FROM_PASCAL = args.draw_from_PASCAL_files
+last_img_index = 0
+n_frames = 200
+draw_from_pascal = False
+image_paths_list = []
+video_name_map = {}
+base_level_line_thickness = 1
 
 # selected bounding box
 prev_was_double_click = False
 is_bbox_selected = False
 selected_bbox = -1
-LINE_THICKNESS = args.thickness
 
 mouse_x = 0
 mouse_y = 0
 point_1 = (-1, -1)
 point_2 = (-1, -1)
+width, height = 0, 0
+
+class_index = 0
+img = None
+img_objects = []
+annotation_formats = {'YOLO_darknet' : '.txt'}  # 'PASCAL_VOC' : '.xml',
+
+# change to the directory of this script
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+
+def get_args():
+    parser = argparse.ArgumentParser(description='Open-source image labeling tool')
+    parser.add_argument('-i', '--input_dir', default='input', type=str, help='Path to input directory')
+    parser.add_argument(
+        "-l",
+        "--files_list",
+        default=None,
+        nargs="*",
+        help="For restricting to selected files within input_dir",
+        )
+    parser.add_argument('-o', '--output_dir', default='output', type=str, help='Path to output directory')
+    parser.add_argument('-t', '--thickness', default='1', type=int, help='Bounding box and cross line thickness')
+    parser.add_argument('--draw-from-PASCAL-files', action='store_true', help='Draw bounding boxes from the PASCAL files') # default YOLO
+    '''
+    tracker_types = ['CSRT', 'KCF','MOSSE', 'MIL', 'BOOSTING', 'MEDIANFLOW', 'TLD', 'GOTURN', 'DASIAMRPN']
+        Recomended tracker_type:
+            DASIAMRPN -> best
+            KCF -> KCF is usually very good (minimum OpenCV 3.1.0)
+            CSRT -> More accurate than KCF but slightly slower (minimum OpenCV 3.4.2)
+            MOSSE -> Less accurate than KCF but very fast (minimum OpenCV 3.4.1)
+    '''
+    parser.add_argument('--tracker', default='KCF', type=str, help="tracker_type being used: ['CSRT', 'KCF','MOSSE', 'MIL', 'BOOSTING', 'MEDIANFLOW', 'TLD', 'GOTURN', 'DASIAMRPN']")
+    parser.add_argument('-n', '--n_frames', default='200', type=int, help='number of frames to track object for')
+    args = parser.parse_args()
+    return args
+
 
 '''
     0,0 ------> x (width)
@@ -94,7 +114,6 @@ def pointInRect(pX, pY, rX_left, rY_top, rX_right, rY_bottom):
     return rX_left <= pX <= rX_right and rY_top <= pY <= rY_bottom
 
 
-
 # Class to deal with bbox resizing
 class dragBBox:
     '''
@@ -104,10 +123,7 @@ class dragBBox:
         |            |
         LB -- MB -- RB
     '''
-
-    # Size of resizing anchors (depends on LINE_THICKNESS)
-    sRA = LINE_THICKNESS * 2
-
+    sRA = base_level_line_thickness * 2
     # Object being dragged
     selected_object = None
 
@@ -118,7 +134,7 @@ class dragBBox:
     \brief This method is used to check if a current mouse position is inside one of the resizing anchors of a bbox
     '''
     @staticmethod
-    def check_point_inside_resizing_anchors(eX, eY, obj):
+    def check_point_inside_resizing_anchors(eX, eY, obj, sRA=2):
         _class_name, x_left, y_top, x_right, y_bottom = obj
         # first check if inside the bbox region (to avoid making 8 comparisons per object)
         if pointInRect(eX, eY,
@@ -189,22 +205,24 @@ class dragBBox:
             dragBBox.selected_object = None
             dragBBox.anchor_being_dragged = None
 
+
 def display_text(text, time):
     if WITH_QT:
         cv2.displayOverlay(WINDOW_NAME, text, time)
     else:
         print(text)
 
-def set_img_index(x):
-    global img_index, img
+
+def load_image_at_index(x):
+    global img_index, img, last_img_index, image_paths_list
     img_index = x
-    img_path = IMAGE_PATH_LIST[img_index]
+    img_path = image_paths_list[img_index]
     img = cv2.imread(img_path)
     text = 'Showing image {}/{}, path: {}'.format(str(img_index), str(last_img_index), img_path)
     display_text(text, 1000)
 
 
-def set_class_index(x):
+def set_class_index(x, last_class_index):
     global class_index
     class_index = x
     text = 'Selected class {}/{} -> {}'.format(str(class_index), str(last_class_index), CLASS_LIST[class_index])
@@ -235,9 +253,9 @@ def increase_index(current_index, last_index):
     return current_index
 
 
-def draw_line(img, x, y, height, width, color):
-    cv2.line(img, (x, 0), (x, height), color, LINE_THICKNESS)
-    cv2.line(img, (0, y), (width, y), color, LINE_THICKNESS)
+def draw_line(img, x, y, height, width, color, line_thickness):
+    cv2.line(img, (x, 0), (x, height), color, line_thickness)
+    cv2.line(img, (0, y), (width, y), color, line_thickness)
 
 
 def yolo_format(class_index, point_1, point_2, width, height):
@@ -258,6 +276,7 @@ def voc_format(class_name, point_1, point_2):
     items = map(str, [class_name, xmin, ymin, xmax, ymax])
     return items
 
+
 def findIndex(obj_to_find):
     #return [(ind, img_objects[ind].index(obj_to_find)) for ind in xrange(len(img_objects)) if item in img_objects[ind]]
     ind = -1
@@ -270,6 +289,7 @@ def findIndex(obj_to_find):
         ind_ = ind_+1
 
     return ind
+
 
 def write_xml(xml_str, xml_path):
     # remove blank text before prettifying the xml
@@ -334,7 +354,7 @@ def get_xml_object_data(obj):
 
 
 def get_txt_object_data(obj, img_width, img_height):
-    classId, centerX, centerY, bbox_width, bbox_height = obj.split()
+    classId, centerX, centerY, bbox_width, bbox_height = obj.split()[0:5]
     bbox_width = float(bbox_width)
     bbox_height  = float(bbox_height)
     centerX = float(centerX)
@@ -381,33 +401,36 @@ def draw_bbox_anchors(tmp_img, xmin, ymin, xmax, ymax, color):
         cv2.rectangle(tmp_img, (int(x1), int(y1)), (int(x2), int(y2)), color, -1)
     return tmp_img
 
+
 def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
-    global img_objects#, is_bbox_selected, selected_bbox
+    global img_objects, draw_from_pascal, base_level_line_thickness  #, is_bbox_selected, selected_bbox
     img_objects = []
     ann_path = None
-    if DRAW_FROM_PASCAL:
+    if draw_from_pascal:
         # Drawing bounding boxes from the PASCAL files
         ann_path = next(path for path in annotation_paths if 'PASCAL_VOC' in path)
     else:
         # Drawing bounding boxes from the YOLO files
         ann_path = next(path for path in annotation_paths if 'YOLO_darknet' in path)
     if os.path.isfile(ann_path):
-        if DRAW_FROM_PASCAL:
+        if draw_from_pascal:
             tree = ET.parse(ann_path)
             annotation = tree.getroot()
             for idx, obj in enumerate(annotation.findall('object')):
                 class_name, class_index, xmin, ymin, xmax, ymax = get_xml_object_data(obj)
                 #print('{} {} {} {} {}'.format(class_index, xmin, ymin, xmax, ymax))
                 img_objects.append([class_index, xmin, ymin, xmax, ymax])
-                color = class_rgb[class_index].tolist()
+                color = CLASS_RGB[class_index].tolist()
+                thickness_multiple = int(class_index / 14)
+                line_thickness = args.thickness + thickness_multiple
                 # draw bbox
-                cv2.rectangle(tmp_img, (xmin, ymin), (xmax, ymax), color, LINE_THICKNESS)
+                cv2.rectangle(tmp_img, (xmin, ymin), (xmax, ymax), color, line_thickness)
                 # draw resizing anchors if the object is selected
                 if is_bbox_selected:
                     if idx == selected_bbox:
                         tmp_img = draw_bbox_anchors(tmp_img, xmin, ymin, xmax, ymax, color)
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(tmp_img, class_name, (xmin, ymin - 5), font, 0.6, color, LINE_THICKNESS, cv2.LINE_AA)
+                cv2.putText(tmp_img, class_name, (xmin, ymin - 5), font, 0.6, color, line_thickness, cv2.LINE_AA)
         else:
             # Draw from YOLO
             with open(ann_path) as fp:
@@ -416,15 +439,17 @@ def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
                     class_name, class_index, xmin, ymin, xmax, ymax = get_txt_object_data(obj, width, height)
                     #print('{} {} {} {} {}'.format(class_index, xmin, ymin, xmax, ymax))
                     img_objects.append([class_index, xmin, ymin, xmax, ymax])
-                    color = class_rgb[class_index].tolist()
+                    color = list(CLASS_RGB[class_index])  # .tolist()
                     # draw bbox
-                    cv2.rectangle(tmp_img, (xmin, ymin), (xmax, ymax), color, LINE_THICKNESS)
+                    thickness_multiple = int(class_index / 14)
+                    line_thickness = base_level_line_thickness + thickness_multiple
+                    cv2.rectangle(tmp_img, (xmin, ymin), (xmax, ymax), color, line_thickness)
                     # draw resizing anchors if the object is selected
                     if is_bbox_selected:
                         if idx == selected_bbox:
                             tmp_img = draw_bbox_anchors(tmp_img, xmin, ymin, xmax, ymax, color)
                     font = cv2.FONT_HERSHEY_SIMPLEX
-                    cv2.putText(tmp_img, class_name, (xmin, ymin - 5), font, 0.6, color, LINE_THICKNESS, cv2.LINE_AA)
+                    cv2.putText(tmp_img, class_name, (xmin, ymin - 5), font, 0.6, color, line_thickness, cv2.LINE_AA)
     return tmp_img
 
 
@@ -466,10 +491,11 @@ def is_mouse_inside_delete_button():
 
 
 def edit_bbox(obj_to_edit, action):
-    ''' action = `delete`
+    """ action = `delete`
                  `change_class:new_class_index`
                  `resize_bbox:new_x_left:new_y_top:new_x_right:new_y_bottom`
-    '''
+    """
+    global tracker_dir, img_index, image_paths_list, current_img_path, width, height
     if 'change_class' in action:
         new_class_index = int(action.split(':')[1])
     elif 'resize_bbox' in action:
@@ -481,19 +507,19 @@ def edit_bbox(obj_to_edit, action):
     # 1. initialize bboxes_to_edit_dict
     #    (we use a dict since a single label can be associated with multiple ones in videos)
     bboxes_to_edit_dict = {}
-    current_img_path = IMAGE_PATH_LIST[img_index]
+    current_img_path = image_paths_list[img_index]
     bboxes_to_edit_dict[current_img_path] = obj_to_edit
 
     # 2. add elements to bboxes_to_edit_dict
-    '''
+    """
         If the bbox is in the json file then it was used by the video Tracker, hence,
         we must also edit the next predicted bboxes associated to the same `anchor_id`.
-    '''
+    """
     # if `current_img_path` is a frame from a video
     is_from_video, video_name = is_frame_from_video(current_img_path)
     if is_from_video:
         # get json file corresponding to that video
-        json_file_path = '{}.json'.format(os.path.join(TRACKER_DIR, video_name))
+        json_file_path = '{}.json'.format(os.path.join(tracker_dir, video_name))
         file_exists, json_file_data = get_json_file_data(json_file_path)
         # if json file exists
         if file_exists:
@@ -554,7 +580,8 @@ def edit_bbox(obj_to_edit, action):
                 with open(ann_path, 'r') as old_file:
                     lines = old_file.readlines()
 
-                yolo_line = yolo_format(class_index, (xmin, ymin), (xmax, ymax), width, height) # TODO: height and width ought to be stored
+                yolo_line = yolo_format(class_index, (xmin, ymin), (xmax, ymax), width, height)
+                # Idea: height and width ought to be stored
                 ind = findIndex(obj_to_edit)
                 i=0
 
@@ -659,7 +686,6 @@ def mouse_listener(event, x, y, flags, param):
             dragBBox.handler_left_mouse_up(x, y)
 
 
-
 def get_close_icon(x1, y1, x2, y2):
     percentage = 0.05
     height = -1
@@ -723,7 +749,7 @@ def convert_video_to_images(video_path, n_frames, desired_img_format):
 def get_annotation_paths(img_path, annotation_formats):
     annotation_paths = []
     for ann_dir, ann_ext in annotation_formats.items():
-        new_path = os.path.join(OUTPUT_DIR, ann_dir)
+        new_path = os.path.join(output_dir, ann_dir)
         new_path = os.path.join(new_path, os.path.basename(os.path.normpath(img_path))) #img_path.replace(INPUT_DIR, new_path, 1)
         pre_path, img_ext = os.path.splitext(new_path)
         new_path = new_path.replace(img_ext, ann_ext, 1)
@@ -758,9 +784,10 @@ def save_bounding_box(annotation_paths, class_index, point_1, point_2, width, he
             line = voc_format(CLASS_LIST[class_index], point_1, point_2)
             append_bb(ann_path, line, '.xml')
 
+
 def is_frame_from_video(img_path):
-    for video_name in VIDEO_NAME_DICT:
-        video_dir = os.path.join(INPUT_DIR, video_name)
+    for video_name in video_name_map:
+        video_dir = os.path.join(input_dir, video_name)
         if os.path.dirname(img_path) == video_dir:
             # image belongs to a video
             return True, video_name
@@ -777,17 +804,17 @@ def get_json_file_data(json_file_path):
 
 
 def get_prev_frame_path_list(video_name, img_path):
-    first_index = VIDEO_NAME_DICT[video_name]['first_index']
-    last_index = VIDEO_NAME_DICT[video_name]['last_index']
-    img_index = IMAGE_PATH_LIST.index(img_path)
-    return IMAGE_PATH_LIST[first_index:img_index]
+    first_index = video_name_map[video_name]['first_index']
+    last_index = video_name_map[video_name]['last_index']
+    img_index = image_paths_list.index(img_path)
+    return image_paths_list[first_index:img_index]
 
 
 def get_next_frame_path_list(video_name, img_path):
-    first_index = VIDEO_NAME_DICT[video_name]['first_index']
-    last_index = VIDEO_NAME_DICT[video_name]['last_index']
-    img_index = IMAGE_PATH_LIST.index(img_path)
-    return IMAGE_PATH_LIST[(img_index + 1):last_index]
+    first_index = video_name_map[video_name]['first_index']
+    last_index = video_name_map[video_name]['last_index']
+    img_index = image_paths_list.index(img_path)
+    return image_paths_list[(img_index + 1):last_index]
 
 
 def get_json_object_dict(obj, json_object_list):
@@ -854,13 +881,13 @@ def json_file_add_object(frame_data_dict, img_path, anchor_id, pred_counter, obj
     return frame_data_dict
 
 
-class LabelTracker():
+class LabelTracker:
     ''' Special thanks to Rafael Caballero Gonzalez '''
     # extract the OpenCV version info, e.g.:
     # OpenCV 3.3.4 -> [major_ver].[minor_ver].[subminor_ver]
     (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
 
-    # TODO: press ESC to stop the tracking process
+    # Idea: pressing ESC to stop the tracking process
 
     def __init__(self, tracker_type, init_frame, next_frame_path_list):
         tracker_types = ['CSRT', 'KCF','MOSSE', 'MIL', 'BOOSTING', 'MEDIANFLOW', 'TLD', 'GOTURN', 'DASIAMRPN']
@@ -870,7 +897,7 @@ class LabelTracker():
               MOSSE -> Less accurate than KCF but very fast (minimum OpenCV 3.4.1)
         '''
         self.tracker_type = tracker_type
-        # -- TODO: remove this if I assume OpenCV version > 3.4.0
+        # Idea: remove this if I assume OpenCV version > 3.4.0
         if tracker_type == tracker_types[0] or tracker_type == tracker_types[2]:
             if int(self.major_ver == 3) and int(self.minor_ver) < 4:
                 self.tracker_type = tracker_types[1] # Use KCF instead of CSRT or MOSSE
@@ -880,12 +907,11 @@ class LabelTracker():
 
         self.img_h, self.img_w = init_frame.shape[:2]
 
-
-    def call_tracker_constructor(self, tracker_type):
+    def call_tracker_constructor(self, tracker_type, dasiamrpn):
         if tracker_type == 'DASIAMRPN':
             tracker = dasiamrpn()
         else:
-            # -- TODO: remove this if I assume OpenCV version > 3.4.0
+            # Idea: remove this if I assume OpenCV version > 3.4.0
             if int(self.major_ver == 3) and int(self.minor_ver) < 3:
                 #tracker = cv2.Tracker_create(tracker_type)
                 pass
@@ -914,8 +940,7 @@ class LabelTracker():
                     tracker = cv2.TrackerGOTURN_create()
         return tracker
 
-
-    def start_tracker(self, json_file_data, json_file_path, img_path, obj, color, annotation_formats):
+    def start_tracker(self, json_file_data, json_file_path, img_path, obj, color, annotation_formats, line_thickness):
         tracker = self.call_tracker_constructor(self.tracker_type)
         anchor_id = json_file_data['n_anchor_ids']
         frame_data_dict = json_file_data['frame_data_dict']
@@ -930,7 +955,7 @@ class LabelTracker():
             next_image = cv2.imread(frame_path)
             # get the new bbox prediction of the object
             success, bbox = tracker.update(next_image.copy())
-            if pred_counter >= N_FRAMES:
+            if pred_counter >= n_frames:
                 success = False
             if success:
                 pred_counter += 1
@@ -939,7 +964,7 @@ class LabelTracker():
                 ymax = ymin + h
                 obj = [class_index, xmin, ymin, xmax, ymax]
                 frame_data_dict = json_file_add_object(frame_data_dict, frame_path, anchor_id, pred_counter, obj)
-                cv2.rectangle(next_image, (xmin, ymin), (xmax, ymax), color, LINE_THICKNESS)
+                cv2.rectangle(next_image, (xmin, ymin), (xmax, ymax), color, line_thickness)
                 # save prediction
                 annotation_paths = get_annotation_paths(frame_path, annotation_formats)
                 save_bounding_box(annotation_paths, class_index, (xmin, ymin), (xmax, ymax), self.img_w, self.img_h)
@@ -961,22 +986,43 @@ def complement_bgr(color):
     k = lo + hi
     return tuple(k - u for u in color)
 
-# change to the directory of this script
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-if __name__ == '__main__':
-    # load all images and videos (with multiple extensions) from a directory using OpenCV
-    IMAGE_PATH_LIST = []
-    VIDEO_NAME_DICT = {}
-    for f in sorted(os.listdir(INPUT_DIR), key = natural_sort_key):
-        f_path = os.path.join(INPUT_DIR, f)
+def main(args):
+    global current_img_path, img_index, last_img_index
+    global class_index
+    global tracker_dir, draw_from_pascal
+    global input_dir, output_dir, n_frames
+    global point_1, point_2, width, height
+    global base_level_line_thickness
+
+    input_dir = args.input_dir
+    output_dir = args.output_dir
+    n_frames = args.n_frames
+    tracker_dir = os.path.join(output_dir, '.tracker')
+    draw_from_pascal = args.draw_from_PASCAL_files
+    last_img_index = 0
+    base_level_line_thickness = args.thickness
+    if args.tracker == "DASIAMRPN":
+        from dasiamrpn import dasiamrpn
+
+    if args.files_list and len(args.files_list) > 0:
+        image_file_names = args.files_list
+    else:
+        image_file_names = os.listdir(input_dir)
+
+    # create window
+    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_KEEPRATIO)
+    cv2.resizeWindow(WINDOW_NAME, 1000, 700)
+    cv2.setMouseCallback(WINDOW_NAME, mouse_listener)
+    for f in sorted(image_file_names, key=natural_sort_key):
+        f_path = os.path.join(input_dir, f)
         if os.path.isdir(f_path):
             # skip directories
             continue
         # check if it is an image
         test_img = cv2.imread(f_path)
         if test_img is not None:
-            IMAGE_PATH_LIST.append(f_path)
+            image_paths_list.append(f_path)
         else:
             # test if it is a video
             test_video_cap = cv2.VideoCapture(f_path)
@@ -989,98 +1035,91 @@ if __name__ == '__main__':
                 # add video frames to image list
                 frame_list = sorted(os.listdir(video_frames_path), key = natural_sort_key)
                 ## store information about those frames
-                first_index = len(IMAGE_PATH_LIST)
+                first_index = len(image_paths_list)
                 last_index = first_index + len(frame_list) # exclusive
                 indexes_dict = {}
                 indexes_dict['first_index'] = first_index
                 indexes_dict['last_index'] = last_index
-                VIDEO_NAME_DICT[video_name_ext] = indexes_dict
-                IMAGE_PATH_LIST.extend((os.path.join(video_frames_path, frame) for frame in frame_list))
-    last_img_index = len(IMAGE_PATH_LIST) - 1
+                video_name_map[video_name_ext] = indexes_dict
+                image_paths_list.extend((os.path.join(video_frames_path, frame) for frame in frame_list))
+
+    current_img_path = image_paths_list[0]
+    last_img_index = len(image_paths_list) - 1
 
     # create output directories
-    if len(VIDEO_NAME_DICT) > 0:
-        if not os.path.exists(TRACKER_DIR):
-            os.makedirs(TRACKER_DIR)
+    if len(video_name_map) > 0:
+        if not os.path.exists(tracker_dir):
+            os.makedirs(tracker_dir)
     for ann_dir in annotation_formats:
-        new_dir = os.path.join(OUTPUT_DIR, ann_dir)
+        new_dir = os.path.join(output_dir, ann_dir)
         if not os.path.exists(new_dir):
             os.makedirs(new_dir)
-        for video_name_ext in VIDEO_NAME_DICT:
+        for video_name_ext in video_name_map:
             new_video_dir = os.path.join(new_dir, video_name_ext)
             if not os.path.exists(new_video_dir):
                 os.makedirs(new_video_dir)
 
     # create empty annotation files for each image, if it doesn't exist already
-    for img_path in IMAGE_PATH_LIST:
-        # image info for the .xml file
-        test_img = cv2.imread(img_path)
+    for img_path in image_paths_list:
         abs_path = os.path.abspath(img_path)
         folder_name = os.path.dirname(img_path)
         image_name = os.path.basename(img_path)
-        img_height, img_width, depth = (str(number) for number in test_img.shape)
 
         for ann_path in get_annotation_paths(img_path, annotation_formats):
             if not os.path.isfile(ann_path):
                 if '.txt' in ann_path:
                     open(ann_path, 'a').close()
                 elif '.xml' in ann_path:
+                    test_img = cv2.imread(img_path)
+                    img_height, img_width, depth = (str(number) for number in test_img.shape)
                     create_PASCAL_VOC_xml(ann_path, abs_path, folder_name, image_name, img_height, img_width, depth)
 
-    last_class_index = len(CLASS_LIST) - 1
+    class_index = last_class_index = len(CLASS_LIST) - 1
+    img_index = 0
+    load_image_at_index(0)
 
     # Make the class colors the same each session
     # The colors are in BGR order because we're using OpenCV
-    class_rgb = [
-        (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
-        (255, 0, 255), (192, 192, 192), (128, 128, 128), (128, 0, 0),
-        (128, 128, 0), (0, 128, 0), (128, 0, 128), (0, 128, 128), (0, 0, 128)]
-    class_rgb = np.array(class_rgb)
+    class_rgb = np.array(CLASS_RGB)
     # If there are still more classes, add new colors randomly
     num_colors_missing = len(CLASS_LIST) - len(class_rgb)
     if num_colors_missing > 0:
         more_colors = np.random.randint(0, 255+1, size=(num_colors_missing, 3))
         class_rgb = np.vstack([class_rgb, more_colors])
 
-    # create window
-    cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_KEEPRATIO)
-    cv2.resizeWindow(WINDOW_NAME, 1000, 700)
-    cv2.setMouseCallback(WINDOW_NAME, mouse_listener)
-
     # selected image
-    cv2.createTrackbar(TRACKBAR_IMG, WINDOW_NAME, 0, last_img_index, set_img_index)
+    cv2.createTrackbar(TRACKBAR_IMG, WINDOW_NAME, 0, last_img_index, load_image_at_index)
 
     # selected class
     if last_class_index != 0:
         cv2.createTrackbar(TRACKBAR_CLASS, WINDOW_NAME, 0, last_class_index, set_class_index)
 
     # initialize
-    set_img_index(0)
     edges_on = False
-
     display_text('Welcome!\n Press [h] for help.', 4000)
 
     # loop
-    while True:
+    while cv2.getWindowProperty(WINDOW_NAME, 0) >= 0:
         color = class_rgb[class_index].tolist()
+
         # clone the img
         tmp_img = img.copy()
         height, width = tmp_img.shape[:2]
-        if edges_on == True:
+        if edges_on:
             # draw edges
             tmp_img = draw_edges(tmp_img)
         # draw vertical and horizontal guide lines
-        draw_line(tmp_img, mouse_x, mouse_y, height, width, color)
+        draw_line(tmp_img, mouse_x, mouse_y, height, width, color, GUIDE_LINE_THICKNESS)
         # write selected class
         class_name = CLASS_LIST[class_index]
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 0.6
         margin = 3
-        text_width, text_height = cv2.getTextSize(class_name, font, font_scale, LINE_THICKNESS)[0]
-        tmp_img = cv2.rectangle(tmp_img, (mouse_x + LINE_THICKNESS, mouse_y - LINE_THICKNESS), (mouse_x + text_width + margin, mouse_y - text_height - margin), complement_bgr(color), -1)
-        tmp_img = cv2.putText(tmp_img, class_name, (mouse_x + margin, mouse_y - margin), font, font_scale, color, LINE_THICKNESS, cv2.LINE_AA)
+        text_width, text_height = cv2.getTextSize(class_name, font, font_scale, GUIDE_LINE_THICKNESS)[0]
+        tmp_img = cv2.rectangle(tmp_img, (mouse_x + GUIDE_LINE_THICKNESS, mouse_y - GUIDE_LINE_THICKNESS), (mouse_x + text_width + margin, mouse_y - text_height - margin), complement_bgr(color), -1)
+        tmp_img = cv2.putText(tmp_img, class_name, (GUIDE_LINE_THICKNESS + margin, mouse_y - margin), font, font_scale, color, GUIDE_LINE_THICKNESS, cv2.LINE_AA)
         # get annotation paths
-        img_path = IMAGE_PATH_LIST[img_index]
+        img_path = image_paths_list[img_index]
         annotation_paths = get_annotation_paths(img_path, annotation_formats)
         if dragBBox.anchor_being_dragged is not None:
             dragBBox.handler_mouse_move(mouse_x, mouse_y)
@@ -1092,7 +1131,7 @@ if __name__ == '__main__':
         # if first click
         if point_1[0] != -1:
             # draw partial bbox
-            cv2.rectangle(tmp_img, point_1, (mouse_x, mouse_y), color, LINE_THICKNESS)
+            cv2.rectangle(tmp_img, point_1, (mouse_x, mouse_y), color, base_level_line_thickness)
             # if second click
             if point_2[0] != -1:
                 # save the bounding box
@@ -1113,7 +1152,7 @@ if __name__ == '__main__':
                 # show next image key listener
                 elif pressed_key == ord('d'):
                     img_index = increase_index(img_index, last_img_index)
-                set_img_index(img_index)
+                load_image_at_index(img_index)
                 cv2.setTrackbarPos(TRACKBAR_IMG, WINDOW_NAME, img_index)
             elif pressed_key == ord('s') or pressed_key == ord('w'):
                 # change down current class key listener
@@ -1151,7 +1190,7 @@ if __name__ == '__main__':
                     # get list of objects associated to that frame
                     object_list = img_objects[:]
                     # remove the objects in that frame that are already in the `.json` file
-                    json_file_path = '{}.json'.format(os.path.join(TRACKER_DIR, video_name))
+                    json_file_path = '{}.json'.format(os.path.join(tracker_dir, video_name))
                     file_exists, json_file_data = get_json_file_data(json_file_path)
                     if file_exists:
                         object_list = remove_already_tracked_objects(object_list, img_path, json_file_data)
@@ -1160,7 +1199,7 @@ if __name__ == '__main__':
                         next_frame_path_list = get_next_frame_path_list(video_name, img_path)
                         # initial frame
                         init_frame = img.copy()
-                        label_tracker = LabelTracker(TRACKER_TYPE, init_frame, next_frame_path_list)
+                        label_tracker = LabelTracker(args.tracker, init_frame, next_frame_path_list)
                         for obj in object_list:
                             class_index = obj[0]
                             color = class_rgb[class_index].tolist()
@@ -1176,3 +1215,22 @@ if __name__ == '__main__':
                 break
 
     cv2.destroyAllWindows()
+
+
+if __name__ == '__main__':
+    args = get_args()
+    main(args=args)
+
+
+def test_main():
+    class Args:
+        input_dir = "C:\\RACAS_Moira_2020_sample"
+        output_dir = "C:\\RACAS_Moira_2020_sample"
+        thickness = 1
+        tracker = "KCF"
+        n_frames = 200
+        files_list = None
+        draw_from_PASCAL_files = False
+
+    args = Args()
+    main(args=args)

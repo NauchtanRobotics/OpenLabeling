@@ -1,6 +1,6 @@
 *.pyc
 .idea/
 venv/
-main/input/people_walking_mp4
-main/output
+open_labeling/input/people_walking_mp4
+open_labeling/output
 object_detection/models/*
