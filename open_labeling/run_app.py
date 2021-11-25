@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import re
+from pathlib import Path
 
 from cv2 import cv2
 import numpy as np
@@ -239,16 +240,16 @@ def draw_edges(tmp_img):
     return tmp_img
 
 
-def decrease_index(current_index):
+def decrease_index(current_index, max_index):
     current_index -= 1
     if current_index < 0:
-        current_index = MAX_CLASS_INDEX
+        current_index = max_index
     return current_index
 
 
-def increase_index(current_index):
+def increase_index(current_index, max_index):
     current_index += 1
-    if current_index > MAX_CLASS_INDEX:
+    if current_index > max_index:
         current_index = 0
     return current_index
 
@@ -1008,7 +1009,7 @@ def main(args):
     n_frames = args.n_frames
     tracker_dir = os.path.join(output_dir, '.tracker')
     draw_from_pascal = args.draw_from_PASCAL_files
-    last_img_index = 0
+
     base_level_line_thickness = args.thickness
     if args.tracker == "DASIAMRPN":
         from dasiamrpn import dasiamrpn
@@ -1155,19 +1156,19 @@ def main(args):
             if pressed_key == ord('a') or pressed_key == ord('d'):
                 # show previous image key listener
                 if pressed_key == ord('a'):
-                    img_index = decrease_index(img_index)
+                    img_index = decrease_index(img_index, last_img_index)
                 # show next image key listener
                 elif pressed_key == ord('d'):
-                    img_index = increase_index(img_index)
+                    img_index = increase_index(img_index, last_img_index)
                 load_image_at_index(img_index)
                 cv2.setTrackbarPos(TRACKBAR_IMG, WINDOW_NAME, img_index)
             elif pressed_key == ord('s') or pressed_key == ord('w'):
                 # change down current class key listener
                 if pressed_key == ord('s'):
-                    class_index = decrease_index(class_index)
+                    class_index = decrease_index(class_index, MAX_CLASS_INDEX)
                 # change up current class key listener
                 elif pressed_key == ord('w'):
-                    class_index = increase_index(class_index)
+                    class_index = increase_index(class_index, MAX_CLASS_INDEX)
                 thickness_multiple = int(class_index / 14)
                 line_thickness = base_level_line_thickness + thickness_multiple
                 draw_line(tmp_img, mouse_x, mouse_y, height, width, color, line_thickness)
@@ -1232,9 +1233,10 @@ if __name__ == '__main__':
 
 
 def test_main():
+    BASE_DIR = Path(__file__).parents[1] / "tests" / "test_data" / "Photos"
     class Args:
-        input_dir = "C:\\RACAS_Moira_2020_sample"
-        output_dir = "C:\\RACAS_Moira_2020_sample"
+        input_dir = f"{str(BASE_DIR)}"
+        output_dir = f"{str(BASE_DIR)}"
         thickness = 1
         tracker = "KCF"
         n_frames = 200
