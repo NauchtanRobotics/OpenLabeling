@@ -15,12 +15,11 @@ from open_labeling.load_classes import get_class_list
 
 CLASS_RGB = [
         (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
-        (255, 0, 255), (50, 0, 255), (0, 50, 255), (255, 50, 0),
+        (255, 0, 255), (50, 0, 255), (0, 50, 255), (200, 70, 0), (140, 140, 140),
         (255, 128, 0), (50, 255, 0), (255, 0, 128), (50, 128, 255), (50, 0, 255),
-        (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
-        (255, 0, 255), (50, 0, 255), (0, 50, 255), (255, 50, 0),
-        (255, 128, 0), (50, 255, 0), (255, 0, 128), (50, 128, 255), (50, 0, 255),
-    ]
+]
+class_rgb = np.array([])
+
 GUIDE_LINE_THICKNESS = 1
 CLASS_LIST = get_class_list()
 MAX_CLASS_INDEX = len(CLASS_LIST) - 1
@@ -404,7 +403,7 @@ def draw_bbox_anchors(tmp_img, xmin, ymin, xmax, ymax, color):
 
 
 def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
-    global img_objects, draw_from_pascal, base_level_line_thickness  #, is_bbox_selected, selected_bbox
+    global img_objects, draw_from_pascal, base_level_line_thickness, class_rgb
     img_objects = []
     ann_path = None
     if draw_from_pascal:
@@ -421,8 +420,8 @@ def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
                 class_name, class_index, xmin, ymin, xmax, ymax = get_xml_object_data(obj)
                 #print('{} {} {} {} {}'.format(class_index, xmin, ymin, xmax, ymax))
                 img_objects.append([class_index, xmin, ymin, xmax, ymax])
-                color = CLASS_RGB[class_index].tolist()
-                thickness_multiple = int(class_index / 14)
+                color = class_rgb[class_index].tolist()
+                thickness_multiple = int(class_index / 15)
                 line_thickness = args.thickness + thickness_multiple
                 # draw bbox
                 cv2.rectangle(tmp_img, (xmin, ymin), (xmax, ymax), color, line_thickness)
@@ -440,9 +439,9 @@ def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
                     class_name, class_index, xmin, ymin, xmax, ymax = get_txt_object_data(obj, width, height)
                     #print('{} {} {} {} {}'.format(class_index, xmin, ymin, xmax, ymax))
                     img_objects.append([class_index, xmin, ymin, xmax, ymax])
-                    color = list(CLASS_RGB[class_index])  # .tolist()
+                    color = class_rgb[class_index].tolist()
                     # draw bbox
-                    thickness_multiple = int(class_index / 14)
+                    thickness_multiple = int(class_index / 15)
                     line_thickness = base_level_line_thickness + thickness_multiple
                     cv2.rectangle(tmp_img, (xmin, ymin), (xmax, ymax), color, line_thickness)
                     # draw resizing anchors if the object is selected
@@ -982,15 +981,23 @@ class LabelTracker:
 
 
 def complement_bgr(color):
-    lo = min(color)
-    hi = max(color)
-    k = lo + hi
-    return tuple(k - u for u in color)
+    b, g, r = tuple(color)
+    if abs(b - g) < 30 and abs(b - r) < 30:  # It's a greyish colour
+        if b < 125:  # for darker greys the complement is white
+            complement = 255, 255, 255
+        else:  # for lighter greys the complement is black
+            complement = 0, 0, 0
+    else:
+        lo = min(color)
+        hi = max(color)
+        k = lo + hi
+        complement = tuple(k - u for u in color)
+    return complement
 
 
 def main(args):
     global current_img_path, img_index, last_img_index
-    global class_index
+    global class_index, class_rgb
     global tracker_dir, draw_from_pascal
     global input_dir, output_dir, n_frames
     global point_1, point_2, width, height
@@ -1083,10 +1090,9 @@ def main(args):
     # The colors are in BGR order because we're using OpenCV
     class_rgb = np.array(CLASS_RGB)
     # If there are still more classes, add new colors randomly
-    num_colors_missing = len(CLASS_LIST) - len(class_rgb)
-    if num_colors_missing > 0:
-        more_colors = np.random.randint(0, 255+1, size=(num_colors_missing, 3))
-        class_rgb = np.vstack([class_rgb, more_colors])
+    multiple_stacks = int(len(CLASS_LIST) / len(CLASS_RGB))
+    for stack in range(multiple_stacks):
+        class_rgb = np.vstack([class_rgb, class_rgb])
 
     # selected image
     cv2.createTrackbar(TRACKBAR_IMG, WINDOW_NAME, 0, last_img_index, load_image_at_index)
