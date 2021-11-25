@@ -11,7 +11,7 @@ from tqdm import tqdm
 from lxml import etree
 import xml.etree.cElementTree as ET
 
-from load_classes import get_class_list
+from open_labeling.load_classes import get_class_list
 
 CLASS_RGB = [
         (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
@@ -23,6 +23,7 @@ CLASS_RGB = [
     ]
 GUIDE_LINE_THICKNESS = 1
 CLASS_LIST = get_class_list()
+MAX_CLASS_INDEX = len(CLASS_LIST) - 1
 DELAY = 20  # keyboard delay (in milliseconds)
 WITH_QT = False
 WINDOW_NAME    = 'OpenLabeling'
@@ -222,10 +223,10 @@ def load_image_at_index(x):
     display_text(text, 1000)
 
 
-def set_class_index(x, last_class_index):
+def set_class_index(x):
     global class_index
     class_index = x
-    text = 'Selected class {}/{} -> {}'.format(str(class_index), str(last_class_index), CLASS_LIST[class_index])
+    text = 'Selected class {}/{} -> {}'.format(str(class_index), str(MAX_CLASS_INDEX), CLASS_LIST[class_index])
     display_text(text, 3000)
 
 
@@ -239,16 +240,16 @@ def draw_edges(tmp_img):
     return tmp_img
 
 
-def decrease_index(current_index, last_index):
+def decrease_index(current_index):
     current_index -= 1
     if current_index < 0:
-        current_index = last_index
+        current_index = MAX_CLASS_INDEX
     return current_index
 
 
-def increase_index(current_index, last_index):
+def increase_index(current_index):
     current_index += 1
-    if current_index > last_index:
+    if current_index > MAX_CLASS_INDEX:
         current_index = 0
     return current_index
 
@@ -1074,7 +1075,7 @@ def main(args):
                     img_height, img_width, depth = (str(number) for number in test_img.shape)
                     create_PASCAL_VOC_xml(ann_path, abs_path, folder_name, image_name, img_height, img_width, depth)
 
-    class_index = last_class_index = len(CLASS_LIST) - 1
+    class_index = 0
     img_index = 0
     load_image_at_index(0)
 
@@ -1091,8 +1092,8 @@ def main(args):
     cv2.createTrackbar(TRACKBAR_IMG, WINDOW_NAME, 0, last_img_index, load_image_at_index)
 
     # selected class
-    if last_class_index != 0:
-        cv2.createTrackbar(TRACKBAR_CLASS, WINDOW_NAME, 0, last_class_index, set_class_index)
+    if MAX_CLASS_INDEX != 0:
+        cv2.createTrackbar(TRACKBAR_CLASS, WINDOW_NAME, 0, MAX_CLASS_INDEX, set_class_index)
 
     # initialize
     edges_on = False
@@ -1148,20 +1149,22 @@ def main(args):
             if pressed_key == ord('a') or pressed_key == ord('d'):
                 # show previous image key listener
                 if pressed_key == ord('a'):
-                    img_index = decrease_index(img_index, last_img_index)
+                    img_index = decrease_index(img_index)
                 # show next image key listener
                 elif pressed_key == ord('d'):
-                    img_index = increase_index(img_index, last_img_index)
+                    img_index = increase_index(img_index)
                 load_image_at_index(img_index)
                 cv2.setTrackbarPos(TRACKBAR_IMG, WINDOW_NAME, img_index)
             elif pressed_key == ord('s') or pressed_key == ord('w'):
                 # change down current class key listener
                 if pressed_key == ord('s'):
-                    class_index = decrease_index(class_index, last_class_index)
+                    class_index = decrease_index(class_index)
                 # change up current class key listener
                 elif pressed_key == ord('w'):
-                    class_index = increase_index(class_index, last_class_index)
-                draw_line(tmp_img, mouse_x, mouse_y, height, width, color)
+                    class_index = increase_index(class_index)
+                thickness_multiple = int(class_index / 14)
+                line_thickness = base_level_line_thickness + thickness_multiple
+                draw_line(tmp_img, mouse_x, mouse_y, height, width, color, line_thickness)
                 set_class_index(class_index)
                 cv2.setTrackbarPos(TRACKBAR_CLASS, WINDOW_NAME, class_index)
                 if is_bbox_selected:
