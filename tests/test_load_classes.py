@@ -1,4 +1,4 @@
-from main.load_classes import get_class_list
+from open_labeling.load_classes import get_class_list
 
 
 def test_get_class_list():

@@ -459,15 +459,12 @@ class Tracker:
     # OpenCV 3.3.4 -> [major_ver].[minor_ver].[subminor_ver]
     (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
 
-    # TODO: press ESC to stop the tracking process
-
     def __init__(self, tracker_type, anchorId, classId):
         self.instance = self.call_tracker_constructor(tracker_type) # Tracker instance
         self.classId = classId # Id of object such as people, bicycle,...
         self.anchorId = anchorId # Id of tracker
 
     def call_tracker_constructor(self, tracker_type):
-        # -- TODO: remove this if I assume OpenCV version > 3.4.0
         if int(self.major_ver == 3) and int(self.minor_ver) < 3:
             tracker = cv2.Tracker_create(tracker_type)
         # --
@@ -502,8 +499,6 @@ class TrackerManager:
     # OpenCV 3.3.4 -> [major_ver].[minor_ver].[subminor_ver]
     (major_ver, minor_ver, subminor_ver) = (cv2.__version__).split('.')
 
-    # TODO: press ESC to stop the tracking process
-
     def __init__(self, tracker_type, init_frame, next_frame_path_list):
         tracker_types = ['CSRT', 'KCF', 'MOSSE', 'MIL', 'BOOSTING', 'MEDIANFLOW', 'TLD', 'GOTURN']
         ''' Recomended tracker_type:
@@ -512,7 +507,6 @@ class TrackerManager:
               MOSSE -> Less accurate than KCF but very fast (minimum OpenCV 3.4.1)
         '''
         self.tracker_type = tracker_type
-        # -- TODO: remove this if I assume OpenCV version > 3.4.0
         if tracker_type == tracker_types[0] or tracker_type == tracker_types[2]:
             if int(self.major_ver == 3) and int(self.minor_ver) < 4:
                 self.tracker_type = tracker_types[1]  # Use KCF instead of CSRT or MOSSE
