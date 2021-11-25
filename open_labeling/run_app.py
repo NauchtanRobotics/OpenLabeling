@@ -1118,7 +1118,7 @@ def main(args):
         margin = 3
         text_width, text_height = cv2.getTextSize(class_name, font, font_scale, GUIDE_LINE_THICKNESS)[0]
         tmp_img = cv2.rectangle(tmp_img, (mouse_x + GUIDE_LINE_THICKNESS, mouse_y - GUIDE_LINE_THICKNESS), (mouse_x + text_width + margin, mouse_y - text_height - margin), complement_bgr(color), -1)
-        tmp_img = cv2.putText(tmp_img, class_name, (GUIDE_LINE_THICKNESS + margin, mouse_y - margin), font, font_scale, color, GUIDE_LINE_THICKNESS, cv2.LINE_AA)
+        tmp_img = cv2.putText(tmp_img, class_name, (mouse_x + GUIDE_LINE_THICKNESS + margin, mouse_y - margin), font, font_scale, color, GUIDE_LINE_THICKNESS, cv2.LINE_AA)
         # get annotation paths
         img_path = image_paths_list[img_index]
         annotation_paths = get_annotation_paths(img_path, annotation_formats)
