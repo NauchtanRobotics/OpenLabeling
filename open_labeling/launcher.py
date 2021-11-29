@@ -8,11 +8,16 @@ BASE_DIR = Path(__file__).parents[1]
 if sys.platform == "win32":
     PYTHON_PATH = BASE_DIR / "venv" / "scripts" / "pythonw.exe"
 else:
-    PYTHON_PATH = BASE_DIR / "venv" / "scripts" / "python.exe"
+    PYTHON_PATH = BASE_DIR / "venv" / "bin" / "python"
+
+APP_PATH = BASE_DIR / "open_labeling/run_app.py"
 
 
 def main():
-
+    if not PYTHON_PATH.exists():
+        raise Exception("\nPython path not found: {}".format(str(PYTHON_PATH)))
+    if not APP_PATH.exists():
+        raise Exception("\nApp path not found: {}".format(str(APP_PATH)))
     file_list_column = [
         [
             sg.Text("Image Folder"),
@@ -39,7 +44,7 @@ def main():
             folder = values["-FOLDER-"]
 
             def call_run_app(folder):
-                cmd = [str(PYTHON_PATH), "run_app.py", '-i', folder, '-o', folder]
+                cmd = [str(PYTHON_PATH), str(APP_PATH), '-i', folder, '-o', folder]
                 subprocess.run(cmd)
 
             open_labeling_thread = threading.Thread(
@@ -49,7 +54,7 @@ def main():
             )
             open_labeling_thread.start()
 
-            window.close()
+            # window.close()
 
 
 if __name__ == '__main__':
