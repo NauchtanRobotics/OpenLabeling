@@ -4,6 +4,7 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import List
 
 from cv2 import cv2
 import numpy as np
@@ -218,7 +219,7 @@ def load_image_at_index(x):
     global img_index, img, last_img_index, image_paths_list
     img_index = x
     img_path = image_paths_list[img_index]
-    img = cv2.imread(img_path)
+    img = cv2.imread(str(img_path))
     text = 'Showing image {}/{}, path: {}'.format(str(img_index), str(last_img_index), img_path)
     display_text(text, 1000)
 
@@ -292,14 +293,14 @@ def findIndex(obj_to_find):
     return ind
 
 
-def write_xml(xml_str, xml_path):
+def write_xml(xml_str: bytes, xml_path: Path):
     # remove blank text before prettifying the xml
     parser = etree.XMLParser(remove_blank_text=True)
     root = etree.fromstring(xml_str, parser)
     # prettify
     xml_str = etree.tostring(root, pretty_print=True)
     # save to file
-    with open(xml_path, 'wb') as temp_xml:
+    with open(str(xml_path), 'wb') as temp_xml:
         temp_xml.write(xml_str)
 
 
@@ -412,7 +413,7 @@ def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
         ann_path = next(path for path in annotation_paths if 'PASCAL_VOC' in path)
     else:
         # Drawing bounding boxes from the YOLO files
-        ann_path = next(path for path in annotation_paths if 'YOLO_darknet' in path)
+        ann_path = next(path for path in annotation_paths if 'YOLO_darknet' in str(path))
     if os.path.isfile(ann_path):
         if draw_from_pascal:
             tree = ET.parse(ann_path)
@@ -576,7 +577,7 @@ def edit_bbox(obj_to_edit, action):
         class_index, xmin, ymin, xmax, ymax = map(int, obj_to_edit)
 
         for ann_path in get_annotation_paths(path, annotation_formats):
-            if '.txt' in ann_path:
+            if '.txt' in ann_path.name:
                 # edit YOLO file
                 with open(ann_path, 'r') as old_file:
                     lines = old_file.readlines()
@@ -716,7 +717,7 @@ def draw_info_bb_selected(tmp_img):
 
 def natural_sort_key(s, _nsre=re.compile('([0-9]+)')):
     return [int(text) if text.isdigit() else text.lower()
-            for text in _nsre.split(s)]
+            for text in _nsre.split(str(s))]
 
 
 def convert_video_to_images(video_path, n_frames, desired_img_format):
@@ -747,18 +748,15 @@ def convert_video_to_images(video_path, n_frames, desired_img_format):
     return file_path, video_name_ext
 
 
-def get_annotation_paths(img_path, annotation_formats):
+def get_annotation_paths(img_path: Path, annotation_formats) -> List[Path]:
     annotation_paths = []
     for ann_dir, ann_ext in annotation_formats.items():
-        new_path = os.path.join(output_dir, ann_dir)
-        new_path = os.path.join(new_path, os.path.basename(os.path.normpath(img_path))) #img_path.replace(INPUT_DIR, new_path, 1)
-        pre_path, img_ext = os.path.splitext(new_path)
-        new_path = new_path.replace(img_ext, ann_ext, 1)
+        new_path = img_path.parent / ann_dir / f"{img_path.stem}{ann_ext}"
         annotation_paths.append(new_path)
     return annotation_paths
 
 
-def create_PASCAL_VOC_xml(xml_path, abs_path, folder_name, image_name, img_height, img_width, depth):
+def create_PASCAL_VOC_xml(xml_path: Path, abs_path, folder_name, image_name, img_height, img_width, depth):
     # By: Jatin Kumar Mandav
     annotation = ET.Element('annotation')
     ET.SubElement(annotation, 'folder').text = folder_name
@@ -776,12 +774,12 @@ def create_PASCAL_VOC_xml(xml_path, abs_path, folder_name, image_name, img_heigh
     write_xml(xml_str, xml_path)
 
 
-def save_bounding_box(annotation_paths, class_index, point_1, point_2, width, height):
+def save_bounding_box(annotation_paths: List[Path], class_index, point_1, point_2, width, height):
     for ann_path in annotation_paths:
-        if '.txt' in ann_path:
+        if '.txt' == ann_path.suffix:
             line = yolo_format(class_index, point_1, point_2, width, height)
             append_bb(ann_path, line, '.txt')
-        elif '.xml' in ann_path:
+        elif '.xml' == ann_path.suffix:
             line = voc_format(CLASS_LIST[class_index], point_1, point_2)
             append_bb(ann_path, line, '.xml')
 
@@ -1004,8 +1002,6 @@ def main(args):
     global point_1, point_2, width, height
     global base_level_line_thickness
 
-    input_dir = args.input_dir
-    output_dir = args.output_dir
     n_frames = args.n_frames
     tracker_dir = os.path.join(output_dir, '.tracker')
     draw_from_pascal = args.draw_from_PASCAL_files
@@ -1015,21 +1011,23 @@ def main(args):
         from dasiamrpn import dasiamrpn
 
     if args.files_list and len(args.files_list) > 0:
-        image_file_names = args.files_list
+        image_file_names = [Path(file_path) for file_path in args.files_list]
     else:
-        image_file_names = os.listdir(input_dir)
+        image_file_names = list(Path(input_dir).iterdir())
+        input_dir = args.input_dir
+        image_file_names = sorted(image_file_names, key=natural_sort_key)
 
     # create window
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_KEEPRATIO)
     cv2.resizeWindow(WINDOW_NAME, 1000, 700)
     cv2.setMouseCallback(WINDOW_NAME, mouse_listener)
-    for f in sorted(image_file_names, key=natural_sort_key):
-        f_path = os.path.join(input_dir, f)
+    for f_path in image_file_names:
         if os.path.isdir(f_path):
             # skip directories
             continue
         # check if it is an image
-        test_img = cv2.imread(f_path)
+        print(f"File path: {str(f_path)}")
+        test_img = cv2.imread(str(f_path))
         if test_img is not None:
             image_paths_list.append(f_path)
         else:
@@ -1044,7 +1042,7 @@ def main(args):
                 # add video frames to image list
                 frame_list = sorted(os.listdir(video_frames_path), key = natural_sort_key)
                 ## store information about those frames
-                first_index = len(image_paths_list)
+                first_index = len(image_file_names)
                 last_index = first_index + len(frame_list) # exclusive
                 indexes_dict = {}
                 indexes_dict['first_index'] = first_index
@@ -1059,14 +1057,16 @@ def main(args):
     if len(video_name_map) > 0:
         if not os.path.exists(tracker_dir):
             os.makedirs(tracker_dir)
-    for ann_dir in annotation_formats:
-        new_dir = os.path.join(output_dir, ann_dir)
-        if not os.path.exists(new_dir):
-            os.makedirs(new_dir)
-        for video_name_ext in video_name_map:
-            new_video_dir = os.path.join(new_dir, video_name_ext)
-            if not os.path.exists(new_video_dir):
-                os.makedirs(new_video_dir)
+    if hasattr(args, "output_dir"):
+        output_dir = args.output_dir
+        for ann_dir in annotation_formats:
+            new_dir = os.path.join(output_dir, ann_dir)
+            if not os.path.exists(new_dir):
+                os.makedirs(new_dir)
+            for video_name_ext in video_name_map:
+                new_video_dir = os.path.join(new_dir, video_name_ext)
+                if not os.path.exists(new_video_dir):
+                    os.makedirs(new_video_dir)
 
     # create empty annotation files for each image, if it doesn't exist already
     for img_path in image_paths_list:
@@ -1076,9 +1076,10 @@ def main(args):
 
         for ann_path in get_annotation_paths(img_path, annotation_formats):
             if not os.path.isfile(ann_path):
-                if '.txt' in ann_path:
-                    open(ann_path, 'a').close()
-                elif '.xml' in ann_path:
+                if '.txt' in ann_path.name:
+                    ann_path.parent.mkdir(exist_ok=True)
+                    open(str(ann_path), 'a').close()
+                elif '.xml' in ann_path.name:
                     test_img = cv2.imread(img_path)
                     img_height, img_width, depth = (str(number) for number in test_img.shape)
                     create_PASCAL_VOC_xml(ann_path, abs_path, folder_name, image_name, img_height, img_width, depth)
