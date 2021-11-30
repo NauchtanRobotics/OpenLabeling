@@ -1,7 +1,6 @@
 from pathlib import Path
-from cv2 import cv2
 
-from open_labeling.run_app import get_args, main
+from open_labeling.run_app import main
 
 TEST_IMAGES_DIR = Path(__file__).parent / "test_data" / "Photos"
 
