@@ -1013,8 +1013,8 @@ def main(args):
     if args.files_list and len(args.files_list) > 0:
         image_file_names = [Path(file_path) for file_path in args.files_list]
     else:
-        image_file_names = list(Path(input_dir).iterdir())
         input_dir = args.input_dir
+        image_file_names = list(Path(input_dir).iterdir())
         image_file_names = sorted(image_file_names, key=natural_sort_key)
 
     # create window
