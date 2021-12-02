@@ -1009,19 +1009,29 @@ def main(args):
     base_level_line_thickness = args.thickness
     if args.tracker == "DASIAMRPN":
         from dasiamrpn import dasiamrpn
-
+    image_file_paths = []
     if args.files_list and len(args.files_list) > 0:
-        image_file_names = [Path(file_path) for file_path in args.files_list]
+        image_file_paths = [Path(file_path) for file_path in args.files_list]
+    elif args.input_dir and Path(args.input_dir).exists():
+        input_dir = Path(args.input_dir)
+        if input_dir.is_dir():
+            image_file_paths = list(Path(input_dir).iterdir())
+            image_file_paths = sorted(image_file_paths, key=natural_sort_key)
+        elif input_dir.is_file():
+            if input_dir.suffix in [".jpg", ".JPG"]:
+                image_file_paths = [input_dir]
+            else:
+                raise Exception("Input is not a jpg file.")
+        else:
+            pass  # If it exists it must be a dir or a file.
     else:
-        input_dir = args.input_dir
-        image_file_names = list(Path(input_dir).iterdir())
-        image_file_names = sorted(image_file_names, key=natural_sort_key)
+        pass  # Must use either --input or --files_list arg.
 
     # create window
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_KEEPRATIO)
     cv2.resizeWindow(WINDOW_NAME, 1000, 700)
     cv2.setMouseCallback(WINDOW_NAME, mouse_listener)
-    for f_path in image_file_names:
+    for f_path in image_file_paths:
         if os.path.isdir(f_path):
             # skip directories
             continue
@@ -1042,8 +1052,8 @@ def main(args):
                 # add video frames to image list
                 frame_list = sorted(os.listdir(video_frames_path), key = natural_sort_key)
                 ## store information about those frames
-                first_index = len(image_file_names)
-                last_index = first_index + len(frame_list) # exclusive
+                first_index = len(image_file_paths)
+                last_index = first_index + len(frame_list)  # exclusive
                 indexes_dict = {}
                 indexes_dict['first_index'] = first_index
                 indexes_dict['last_index'] = last_index
@@ -1052,6 +1062,8 @@ def main(args):
 
     current_img_path = image_paths_list[0]
     last_img_index = len(image_paths_list) - 1
+    if last_img_index == 0:  # hack: slider must have length > 0
+        last_img_index += 1
 
     # create output directories
     if len(video_name_map) > 0:
