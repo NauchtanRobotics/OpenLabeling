@@ -27,10 +27,10 @@ from lxml import etree
 import xml.etree.cElementTree as ET
 import sys
 
-from load_classes import get_class_list
+from load_classes import get_class_list_from_text_file
 
 
-CLASS_LIST = get_class_list()
+CLASS_LIST = get_class_list_from_text_file()
 
 sys.path.insert(0, "..")
 from object_detection.tf_object_detection import ObjectDetector

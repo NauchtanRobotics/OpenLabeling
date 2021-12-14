@@ -13,6 +13,7 @@ def test_run_input_dir():
         tracker = "KCF"
         n_frames = 200
         files_list = None
+        class_list = None
         draw_from_PASCAL_files = False
 
     args = Args()
@@ -34,6 +35,26 @@ def test_run_files_list():
         n_frames = 200
         files_list = *FILES_LIST,
         draw_from_PASCAL_files = False
+        class_list = None
+
+    args = Args()
+    main(args=args)
+
+
+CLASSES = ["Dog", "Cat"]
+
+
+def test_run_class_list():
+
+    class Args:
+        input_dir = f"{str(TEST_IMAGES_DIR)}"
+        # output_dir = f"{str(TEST_IMAGES_DIR)}"
+        thickness = 1
+        tracker = "KCF"
+        n_frames = 200
+        draw_from_PASCAL_files = False
+        files_list = None
+        class_list = *CLASSES,
 
     args = Args()
     main(args=args)

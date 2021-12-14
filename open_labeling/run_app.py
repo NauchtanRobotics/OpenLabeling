@@ -13,7 +13,7 @@ from tqdm import tqdm
 from lxml import etree
 import xml.etree.cElementTree as ET
 
-from open_labeling.load_classes import get_class_list
+from open_labeling.load_classes import get_class_list_from_text_file, get_class_list_from_args
 
 CLASS_RGB = [
         (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
@@ -23,7 +23,7 @@ CLASS_RGB = [
 class_rgb = np.array([])
 
 GUIDE_LINE_THICKNESS = 1
-CLASS_LIST = get_class_list()
+CLASS_LIST = get_class_list_from_text_file()
 MAX_CLASS_INDEX = len(CLASS_LIST) - 1
 DELAY = 20  # keyboard delay (in milliseconds)
 WITH_QT = False
@@ -76,11 +76,18 @@ def get_args():
     parser.add_argument('-i', '--input_dir', default='input', type=str, help='Path to input directory')
     parser.add_argument(
         "-l",
-        "--files_list",
+        "--files-list",
         default=None,
         nargs="*",
         help="For restricting to selected files within input_dir",
         )
+    parser.add_argument(
+        "-c",
+        "--class-list",
+        default=None,
+        nargs="*",
+        help="Pass in the class list instead of reading from txt file.",
+    )
     parser.add_argument('-o', '--output_dir', default='output', type=str, help='Path to output directory')
     parser.add_argument('-t', '--thickness', default='1', type=int, help='Bounding box and cross line thickness')
     parser.add_argument('--draw-from-PASCAL-files', action='store_true', help='Draw bounding boxes from the PASCAL files') # default YOLO
@@ -133,7 +140,7 @@ class dragBBox:
     anchor_being_dragged = None
 
     '''
-    \brief This method is used to check if a current mouse position is inside one of the resizing anchors of a bbox
+    This method is used to check if a current mouse position is inside one of the resizing anchors of a bbox
     '''
     @staticmethod
     def check_point_inside_resizing_anchors(eX, eY, obj, sRA=2):
@@ -153,7 +160,7 @@ class dragBBox:
                     break
 
     '''
-    \brief This method is used to select an object if one presses a resizing anchor
+    This method is used to select an object if one presses a resizing anchor
     '''
     @staticmethod
     def handler_left_mouse_down(eX, eY, obj):
@@ -199,8 +206,8 @@ class dragBBox:
                 dragBBox.selected_object = [class_name, x_left, y_top, x_right, y_bottom]
 
     '''
-    \brief This method will reset this class
-     '''
+    This method will reset this class
+    '''
     @staticmethod
     def handler_left_mouse_up(eX, eY):
         if dragBBox.selected_object is not None:
@@ -1001,6 +1008,9 @@ def main(args):
     global input_dir, output_dir, n_frames
     global point_1, point_2, width, height
     global base_level_line_thickness
+    global CLASS_LIST
+    if args.class_list:
+        CLASS_LIST = get_class_list_from_args(args=args)
 
     n_frames = args.n_frames
     tracker_dir = os.path.join(output_dir, '.tracker')
@@ -1247,6 +1257,7 @@ if __name__ == '__main__':
 
 def test_main():
     BASE_DIR = Path(__file__).parents[1] / "tests" / "test_data" / "Photos"
+
     class Args:
         input_dir = f"{str(BASE_DIR)}"
         output_dir = f"{str(BASE_DIR)}"

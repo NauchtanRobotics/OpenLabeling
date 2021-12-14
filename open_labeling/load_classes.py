@@ -1,6 +1,7 @@
 import configparser
 
 from pathlib import Path
+from typing import List
 
 
 def non_blank_lines(file_object):
@@ -10,7 +11,7 @@ def non_blank_lines(file_object):
             yield line
 
 
-def get_class_list():
+def get_class_list_from_text_file():
     """
     Uses the most recent classes source file defined in config.ini
     otherwise defaults the example class_list.txt file provided in
@@ -30,3 +31,15 @@ def get_class_list():
 
     with open(classes_src) as f:
         return list(non_blank_lines(file_object=f))
+
+
+def get_class_list_from_args(args) -> List:
+    if args.class_list:
+        class_list = args.class_list
+    else:
+        class_list = []
+    if len(class_list) == 0:
+        raise RuntimeError("Empty class list")
+    else:
+        pass
+    return class_list
