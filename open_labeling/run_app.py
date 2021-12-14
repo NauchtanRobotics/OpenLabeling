@@ -13,7 +13,7 @@ from tqdm import tqdm
 from lxml import etree
 import xml.etree.cElementTree as ET
 
-from open_labeling.load_classes import get_class_list_from_text_file, get_class_list_from_args
+from open_labeling.load_classes import get_class_list_from_text_file, update_class_list_from_args
 
 CLASS_RGB = [
         (0, 0, 255), (255, 0, 0), (0, 255, 0), (255, 255, 0), (0, 255, 255),
@@ -1008,9 +1008,10 @@ def main(args):
     global input_dir, output_dir, n_frames
     global point_1, point_2, width, height
     global base_level_line_thickness
-    global CLASS_LIST
+
     if args.class_list:
-        CLASS_LIST = get_class_list_from_args(args=args)
+        global CLASS_LIST, MAX_CLASS_INDEX
+        CLASS_LIST, MAX_CLASS_INDEX = update_class_list_from_args(args=args)
 
     n_frames = args.n_frames
     tracker_dir = os.path.join(output_dir, '.tracker')

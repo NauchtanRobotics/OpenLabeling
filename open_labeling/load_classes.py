@@ -1,7 +1,7 @@
 import configparser
 
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 
 def non_blank_lines(file_object):
@@ -33,13 +33,13 @@ def get_class_list_from_text_file():
         return list(non_blank_lines(file_object=f))
 
 
-def get_class_list_from_args(args) -> List:
+def update_class_list_from_args(args) -> Tuple[List, int]:
     if args.class_list:
-        class_list = args.class_list
+        class_list = [class_name for class_name in args.class_list]
     else:
         class_list = []
     if len(class_list) == 0:
         raise RuntimeError("Empty class list")
     else:
         pass
-    return class_list
+    return class_list, len(class_list)-1
