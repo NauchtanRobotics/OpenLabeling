@@ -12,6 +12,8 @@ else:
 
 APP_PATH = BASE_DIR / "open_labeling/run_app.py"
 
+CLASS_LIST = ['D00', 'D10', 'D20', 'D40', 'EB', 'P', 'R', 'FC', 'L0', 'LG', 'AP', 'CD', 'WS', 'RK', 'SD', 'S', "BC", "Asphalt", "Bitumen", "Concrete", "Unsealed", "Kb", "Sh", "Pt", "UG", "UP", "US"]
+
 
 def main():
     if not PYTHON_PATH.exists():
@@ -44,8 +46,8 @@ def main():
             folder = values["-FOLDER-"]
 
             def call_run_app(folder):
-                cmd = [str(PYTHON_PATH), str(APP_PATH), '-i', folder, '-o', folder]
-                subprocess.run(cmd)
+                cmd = [str(PYTHON_PATH), str(APP_PATH), '-i', folder, '-c', *CLASS_LIST]
+                subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr, cwd=str(BASE_DIR))
 
             open_labeling_thread = threading.Thread(
                 target=call_run_app,  # Pointer to function that will launch OpenLabeling.
