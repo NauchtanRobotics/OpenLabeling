@@ -1,24 +1,25 @@
 [tool.poetry]
-name = "OpenLabeling"
-version = "0.1.0"
+name = "open-labeling"
+version = "0.2.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 packages = [
     { include = "open_labeling" },
 ]
+license = "MIT"
 
 [tool.poetry.dependencies]
-python = "~3.8.10"
+python = ">=3.8,<3.11"
 lxml = [
     { version = "~4.3.0", platform = 'windows' },  # 4.3.5 after update - not tested
     { version = "~4.6.5", platform = 'linux' },
 ]
 numpy = [
-    { version = "~1.16.0", platform = 'windows' },
-    { version = "~1.21.5", platform = 'linux' },
+    { version = "^1.16.0", platform = 'windows' },
+    { version = "^1.21.0", platform = 'linux' },
 ]
 opencv-contrib-python = "~3.4.9.33"
-tqdm = "~4.29.1"
+tqdm = "^4.29"
 PySimpleGUI = "^4.55.1"
 
 [tool.poetry.dev-dependencies]

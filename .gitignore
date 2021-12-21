@@ -1,6 +1,8 @@
 *.pyc
 .idea/
 venv/
+.venv
+dist
 open_labeling/input/people_walking_mp4
 open_labeling/output
 object_detection/models/*

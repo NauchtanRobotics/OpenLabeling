@@ -28,8 +28,6 @@ def test_run_files_list():
     ]
 
     class Args:
-        # input_dir = f"{str(BASE_DIR)}"
-        # output_dir = f"{str(BASE_DIR)}"
         thickness = 1
         tracker = "KCF"
         n_frames = 200
@@ -48,7 +46,6 @@ def test_run_class_list():
 
     class Args:
         input_dir = f"{str(TEST_IMAGES_DIR)}"
-        # output_dir = f"{str(TEST_IMAGES_DIR)}"
         thickness = 1
         tracker = "KCF"
         n_frames = 200
