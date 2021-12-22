@@ -1,4 +1,7 @@
 *.pyc
+__cache__
+__pycache__
+.pytest_cache
 .idea/
 venv/
 .venv

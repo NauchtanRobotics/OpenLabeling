@@ -1267,6 +1267,7 @@ def test_main():
         n_frames = 200
         files_list = None
         draw_from_PASCAL_files = False
+        class_list = "Dogs", "Cats",
 
     args = Args()
     main(args=args)
