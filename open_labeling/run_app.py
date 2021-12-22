@@ -1,4 +1,3 @@
-#!/bin/python
 import argparse
 import json
 import os
@@ -9,9 +8,6 @@ from typing import List
 from cv2 import cv2
 import numpy as np
 from tqdm import tqdm
-
-from lxml import etree
-import xml.etree.cElementTree as ET
 
 from open_labeling.load_classes import get_class_list_from_text_file, update_class_list_from_args
 
@@ -300,41 +296,12 @@ def findIndex(obj_to_find):
     return ind
 
 
-def write_xml(xml_str: bytes, xml_path: Path):
-    # remove blank text before prettifying the xml
-    parser = etree.XMLParser(remove_blank_text=True)
-    root = etree.fromstring(xml_str, parser)
-    # prettify
-    xml_str = etree.tostring(root, pretty_print=True)
-    # save to file
-    with open(str(xml_path), 'wb') as temp_xml:
-        temp_xml.write(xml_str)
-
-
 def append_bb(ann_path, line, extension):
     if '.txt' in extension:
         with open(ann_path, 'a') as myfile:
             myfile.write(line + '\n') # append line
-    elif '.xml' in extension:
-        class_name, xmin, ymin, xmax, ymax = line
-
-        tree = ET.parse(ann_path)
-        annotation = tree.getroot()
-
-        obj = ET.SubElement(annotation, 'object')
-        ET.SubElement(obj, 'name').text = class_name
-        ET.SubElement(obj, 'pose').text = 'Unspecified'
-        ET.SubElement(obj, 'truncated').text = '0'
-        ET.SubElement(obj, 'difficult').text = '0'
-
-        bbox = ET.SubElement(obj, 'bndbox')
-        ET.SubElement(bbox, 'xmin').text = xmin
-        ET.SubElement(bbox, 'ymin').text = ymin
-        ET.SubElement(bbox, 'xmax').text = xmax
-        ET.SubElement(bbox, 'ymax').text = ymax
-
-        xml_str = ET.tostring(annotation)
-        write_xml(xml_str, ann_path)
+    else:
+        pass
 
 
 def yolo_to_voc(x_center, y_center, x_width, y_height, width, height):
@@ -423,23 +390,8 @@ def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
         ann_path = next(path for path in annotation_paths if 'YOLO_darknet' in str(path))
     if os.path.isfile(ann_path):
         if draw_from_pascal:
-            tree = ET.parse(ann_path)
-            annotation = tree.getroot()
-            for idx, obj in enumerate(annotation.findall('object')):
-                class_name, class_index, xmin, ymin, xmax, ymax = get_xml_object_data(obj)
-                #print('{} {} {} {} {}'.format(class_index, xmin, ymin, xmax, ymax))
-                img_objects.append([class_index, xmin, ymin, xmax, ymax])
-                color = class_rgb[class_index].tolist()
-                thickness_multiple = int(class_index / 15)
-                line_thickness = args.thickness + thickness_multiple
-                # draw bbox
-                cv2.rectangle(tmp_img, (xmin, ymin), (xmax, ymax), color, line_thickness)
-                # draw resizing anchors if the object is selected
-                if is_bbox_selected:
-                    if idx == selected_bbox:
-                        tmp_img = draw_bbox_anchors(tmp_img, xmin, ymin, xmax, ymax, color)
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                cv2.putText(tmp_img, class_name, (xmin, ymin - 5), font, 0.6, color, line_thickness, cv2.LINE_AA)
+            raise RuntimeError("Support for VOC.xml discontinued.")
+
         else:
             # Draw from YOLO
             with open(ann_path) as fp:
@@ -609,33 +561,8 @@ def edit_bbox(obj_to_edit, action):
 
                         i=i+1
 
-            elif '.xml' in ann_path:
-                # edit PASCAL VOC file
-                tree = ET.parse(ann_path)
-                annotation = tree.getroot()
-                for obj in annotation.findall('object'):
-                    class_name_xml, class_index_xml, xmin_xml, ymin_xml, xmax_xml, ymax_xml = get_xml_object_data(obj)
-                    if ( class_index == class_index_xml and
-                                     xmin == xmin_xml and
-                                     ymin == ymin_xml and
-                                     xmax == xmax_xml and
-                                     ymax == ymax_xml ) :
-                        if 'delete' in action:
-                            annotation.remove(obj)
-                        elif 'change_class' in action:
-                            # edit object class name
-                            object_class = obj.find('name')
-                            object_class.text = CLASS_LIST[new_class_index]
-                        elif 'resize_bbox' in action:
-                            object_bbox = obj.find('bndbox')
-                            object_bbox.find('xmin').text = str(new_x_left)
-                            object_bbox.find('ymin').text = str(new_y_top)
-                            object_bbox.find('xmax').text = str(new_x_right)
-                            object_bbox.find('ymax').text = str(new_y_bottom)
-                        break
-
-                xml_str = ET.tostring(annotation)
-                write_xml(xml_str, ann_path)
+            else:
+                raise RuntimeError("Support for VOC discontinued.")
 
 
 def mouse_listener(event, x, y, flags, param):
@@ -761,24 +688,6 @@ def get_annotation_paths(img_path: Path, annotation_formats) -> List[Path]:
         new_path = img_path.parent / ann_dir / f"{img_path.stem}{ann_ext}"
         annotation_paths.append(new_path)
     return annotation_paths
-
-
-def create_PASCAL_VOC_xml(xml_path: Path, abs_path, folder_name, image_name, img_height, img_width, depth):
-    # By: Jatin Kumar Mandav
-    annotation = ET.Element('annotation')
-    ET.SubElement(annotation, 'folder').text = folder_name
-    ET.SubElement(annotation, 'filename').text = image_name
-    ET.SubElement(annotation, 'path').text = abs_path
-    source = ET.SubElement(annotation, 'source')
-    ET.SubElement(source, 'database').text = 'Unknown'
-    size = ET.SubElement(annotation, 'size')
-    ET.SubElement(size, 'width').text = img_width
-    ET.SubElement(size, 'height').text = img_height
-    ET.SubElement(size, 'depth').text = depth
-    ET.SubElement(annotation, 'segmented').text = '0'
-
-    xml_str = ET.tostring(annotation)
-    write_xml(xml_str, xml_path)
 
 
 def save_bounding_box(annotation_paths: List[Path], class_index, point_1, point_2, width, height):
@@ -1102,11 +1011,8 @@ def main(args):
                 if '.txt' in ann_path.name:
                     ann_path.parent.mkdir(exist_ok=True)
                     open(str(ann_path), 'a').close()
-                elif '.xml' in ann_path.name:
-                    test_img = cv2.imread(img_path)
-                    img_height, img_width, depth = (str(number) for number in test_img.shape)
-                    create_PASCAL_VOC_xml(ann_path, abs_path, folder_name, image_name, img_height, img_width, depth)
-
+                else:
+                    raise RuntimeError("Support for VOC discontinued.")
     class_index = 0
     img_index = 0
     load_image_at_index(0)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "open-labeling"
-version = "0.2.2"
+version = "0.2.3-alpha.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 packages = [
@@ -10,10 +10,6 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
-lxml = [
-    { version = "~4.3.0", platform = 'win32' },  # 4.3.5 after update - not tested
-    { version = "~4.6.5", platform = 'linux' },
-]
 numpy = [
     { version = "^1.16.0", platform = 'win32' },
     { version = "^1.21.0", platform = 'linux' },
