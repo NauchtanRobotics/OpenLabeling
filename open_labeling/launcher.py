@@ -1,3 +1,4 @@
+import argparse
 import sys
 import subprocess
 import threading
@@ -18,11 +19,33 @@ SCRIPT_PATH = Path(__file__).parent / "run_app.py"
 CLASS_LIST = ['D00', 'D10', 'D20', 'D40', 'EB', 'P', 'R', 'FC', 'L0', 'LG', 'AP', 'CD', 'WS', 'RK', 'SD', 'S', "BC", "Asphalt", "Bitumen", "Concrete", "Unsealed", "Kb", "Sh", "Pt", "UG", "UP", "US"]
 
 
-def main():
+def get_args():
+    parser = argparse.ArgumentParser(description='Open-source image labeling tool')
+    parser.add_argument(
+            "-c",
+            "--class-list",
+            default=None,
+            nargs="*",
+            help="Pass in the class list instead of reading from txt file.",
+        )
+    args = parser.parse_args()
+    return args
+
+
+def main(args):
+    if args.class_list:
+        class_list = args.class_list
+        print("\nUsing class List provided: ")
+    else:
+        class_list = CLASS_LIST
+        print("\nAssuming class List: ")
+    print(class_list)
+
     if not POETRY_APP.exists():
-        raise Exception("\nPoetry app not found: {}".format(str(PYTHON_PATH)))
+        raise Exception("\nPoetry app not found: {}".format(str(POETRY_APP)))
     if not SCRIPT_PATH.exists():
-        raise Exception("\nApp path not found: {}".format(str(APP_PATH)))
+        raise Exception("\nApp path not found: {}".format(str(SCRIPT_PATH)))
+
     file_list_column = [
         [
             sg.Text("Image Folder"),
@@ -49,7 +72,7 @@ def main():
             folder = Path(values["-FOLDER-"])
 
             def call_run_app(folder):
-                cmd = [str(POETRY_APP), "run", "python", str(SCRIPT_PATH), '-i', str(folder), '-c', *CLASS_LIST]
+                cmd = [str(POETRY_APP), "run", "python", str(SCRIPT_PATH), '-i', str(folder), '-c', *class_list]
                 subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr, shell=True)  # cwd=str(THIS_DIR))
 
             open_labeling_thread = threading.Thread(
@@ -63,8 +86,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parsed_args = get_args()
+    main(args=parsed_args)
 
 
 def test_launch():
-    main()
+    class Args:
+        class_list = None
+
+    main(args=Args())
