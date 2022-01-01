@@ -73,7 +73,8 @@ def main(args):
 
             def call_run_app(folder):
                 cmd = [str(POETRY_APP), "run", "python", str(SCRIPT_PATH), '-i', str(folder), '-c', *class_list]
-                subprocess.run(cmd, stdout=sys.stdout, stderr=sys.stderr, shell=True)  # cwd=str(THIS_DIR))
+                subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+                # Prefer to use sys.stdout instead of subprocess.PIPE, but causes Windows to fail
 
             open_labeling_thread = threading.Thread(
                 target=call_run_app,  # Pointer to function that will launch OpenLabeling.
