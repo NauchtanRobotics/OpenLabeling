@@ -7,12 +7,15 @@ from pathlib import Path
 
 
 if sys.platform == "win32":
+    SYS_STDOUT = subprocess.PIPE  # Prefer to use sys.stdout instead of
+    SYS_STDERR = subprocess.PIPE  # subprocess.PIPE, but causes Windows to fail
     result = subprocess.check_output(["where", "poetry.bat"])
-    POETRY_APP = result.split(b"\r\n")[0]
 else:
+    SYS_STDOUT = sys.stdout
+    SYS_STDERR = sys.stderr
     result = subprocess.check_output(["which", "poetry"])
-    POETRY_APP = result.split(b"\r\n")[0]
 
+POETRY_APP = result.splitlines()[0]
 POETRY_APP = Path(POETRY_APP.decode('utf-8'))
 SCRIPT_PATH = Path(__file__).parent / "run_app.py"
 
@@ -73,8 +76,7 @@ def main(args):
 
             def call_run_app(folder):
                 cmd = [str(POETRY_APP), "run", "python", str(SCRIPT_PATH), '-i', str(folder), '-c', *class_list]
-                subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-                # Prefer to use sys.stdout instead of subprocess.PIPE, but causes Windows to fail
+                subprocess.run(cmd, stdout=SYS_STDOUT, stderr=SYS_STDERR, check=True)
 
             open_labeling_thread = threading.Thread(
                 target=call_run_app,  # Pointer to function that will launch OpenLabeling.
