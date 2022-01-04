@@ -42,4 +42,4 @@ def update_class_list_from_args(args) -> Tuple[List, int]:
         raise RuntimeError("Empty class list")
     else:
         pass
-    return class_list, len(class_list)-1
+    return class_list, len(class_list) - 1

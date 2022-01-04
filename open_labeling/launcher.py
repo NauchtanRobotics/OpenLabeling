@@ -16,21 +16,21 @@ else:
     result = subprocess.check_output(["which", "poetry"])
 
 POETRY_APP = result.splitlines()[0]
-POETRY_APP = Path(POETRY_APP.decode('utf-8'))
+POETRY_APP = Path(POETRY_APP.decode("utf-8"))
 SCRIPT_PATH = Path(__file__).parent / "run_app.py"
 
-CLASS_LIST = ['D00', 'D10', 'D20', 'D40', 'EB', 'P', 'R', 'FC', 'L0', 'LG', 'AP', 'CD', 'WS', 'RK', 'SD', 'S', "BC", "Asphalt", "Bitumen", "Concrete", "Unsealed", "Kb", "Sh", "Pt", "UG", "UP", "US"]
+CLASS_LIST = ["D00", "D10", "D20", "D40"]
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='Open-source image labeling tool')
+    parser = argparse.ArgumentParser(description="Open-source image labeling tool")
     parser.add_argument(
-            "-c",
-            "--class-list",
-            default=None,
-            nargs="*",
-            help="Pass in the class list instead of reading from txt file.",
-        )
+        "-c",
+        "--class-list",
+        default=None,
+        nargs="*",
+        help="Pass in the class list instead of reading from txt file.",
+    )
     args = parser.parse_args()
     return args
 
@@ -75,7 +75,16 @@ def main(args):
             folder = Path(values["-FOLDER-"])
 
             def call_run_app(folder):
-                cmd = [str(POETRY_APP), "run", "python", str(SCRIPT_PATH), '-i', str(folder), '-c', *class_list]
+                cmd = [
+                    str(POETRY_APP),
+                    "run",
+                    "python",
+                    str(SCRIPT_PATH),
+                    "-i",
+                    str(folder),
+                    "-c",
+                    *class_list,
+                ]
                 subprocess.run(cmd, stdout=SYS_STDOUT, stderr=SYS_STDERR, check=True)
 
             open_labeling_thread = threading.Thread(
@@ -88,7 +97,7 @@ def main(args):
             window.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parsed_args = get_args()
     main(args=parsed_args)
 
