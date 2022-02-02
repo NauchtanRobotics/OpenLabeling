@@ -5,6 +5,7 @@ import threading
 import PySimpleGUI as sg
 from pathlib import Path
 
+from open_labeling.common import check_if_folder_contains_sufficient_images
 
 if sys.platform == "win32":
     SYS_STDOUT = subprocess.PIPE  # Prefer to use sys.stdout instead of
@@ -73,6 +74,7 @@ def main(args):
         # Folder name was filled in, make a list of files in the folder
         if event == "-FOLDER-":
             folder = Path(values["-FOLDER-"])
+            check_if_folder_contains_sufficient_images(input_dir=folder)
 
             def call_run_app(folder):
                 cmd = [
