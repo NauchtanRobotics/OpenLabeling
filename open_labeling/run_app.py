@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import re
+import time
 from pathlib import Path
 from typing import List
 
@@ -1264,6 +1265,7 @@ def main(args):
                     img_index = increase_index(img_index, last_img_index)
                 load_image_at_index(img_index)
                 cv2.setTrackbarPos(TRACKBAR_IMG, WINDOW_NAME, img_index)
+                time.sleep(0.2)
             elif pressed_key == ord("s") or pressed_key == ord("w"):
                 # change down current class key listener
                 if pressed_key == ord("s"):
