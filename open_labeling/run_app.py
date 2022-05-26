@@ -1366,8 +1366,8 @@ def test_main():
         files_list = None
         draw_from_PASCAL_files = False
         class_list = (
-            "Dogs",
-            "Cats",
+            "D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+            "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
         )
 
     args = Args()
