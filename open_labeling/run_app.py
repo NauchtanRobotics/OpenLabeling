@@ -1,4 +1,5 @@
 import argparse
+import PySimpleGUI as Sg
 import json
 import os
 import re
@@ -537,6 +538,15 @@ def is_mouse_inside_delete_button():
     return False
 
 
+DELETE_IMAGE_BUTTON_RECT = (0, 0, 10, 10)
+
+
+def is_mouse_inside_image_delete_button():
+    if pointInRect(mouse_x, mouse_y, *DELETE_IMAGE_BUTTON_RECT):
+        return True
+    return False
+
+
 def edit_bbox(obj_to_edit, action):
     """action = `delete`
     `change_class:new_class_index`
@@ -712,9 +722,9 @@ def mouse_listener(event, x, y, flags, param):
                             obj_to_edit = img_objects[selected_bbox]
                             edit_bbox(obj_to_edit, "delete")
                         is_bbox_selected = False
-                    else:
-                        # first click (start drawing a bounding box or delete an item)
-
+                    elif is_mouse_inside_image_delete_button():
+                        delete_image()
+                    else:  # first click (start drawing a bounding box or delete an item)
                         point_1 = (x, y)
                 else:
                     # minimal size for bounding box to avoid errors
@@ -1052,6 +1062,31 @@ def complement_bgr(color):
         k = lo + hi
         complement = tuple(k - u for u in color)
     return complement
+
+
+def delete_image():
+    # Create the Window
+    global tracker_dir, img_index, image_paths_list, current_img_path
+    layout = [[Sg.Text("Are you sure that you want to delete this image permanently?")],
+              [Sg.OK(), Sg.Cancel()]]
+    windowSg = Sg.Window("Confirm Delete", layout)
+    # Event Loop to process "events"
+    while True:
+        event, values = windowSg.read()
+        if event in (Sg.WIN_CLOSED, "Cancel"):
+            break
+        elif event == "OK":
+            if current_img_path is None:
+                break
+            img_path = Path(current_img_path)
+            annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
+            img_index = increase_index(img_index, last_img_index)
+            load_image_at_index(img_index)
+            os.unlink(str(current_img_path))
+            os.unlink(str(annotation_path))
+            break
+
+    windowSg.close()
 
 
 def main(args):
