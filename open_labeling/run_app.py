@@ -1090,7 +1090,7 @@ def delete_image():
 
 
 def main(args):
-    global current_img_path, img_index, last_img_index
+    global current_img_path, img_index, last_img_index, is_bbox_selected, selected_bbox, img_objects
     global class_index, class_rgb
     global tracker_dir, draw_from_pascal
     global input_dir, output_dir, n_frames
@@ -1377,6 +1377,9 @@ def main(args):
             elif pressed_key == ord("f") and is_bbox_selected:
                 obj_to_edit = img_objects[selected_bbox]
                 change_class_to_fail(obj_to_edit)
+                is_bbox_selected = False
+                selected_bbox = -1
+                load_image_at_index(img_index)
             """ Key Listeners END """
 
         if WITH_QT:
@@ -1388,7 +1391,8 @@ def main(args):
 
 
 def change_class_to_fail(obj_to_edit):
-    _class_idx, xmin, ymin, xmax, ymax = map(int, obj_to_edit)
+    global current_img_path
+    _class_idx, _x_min, _y_min, _x_max, _y_max = map(int, obj_to_edit)
     _new_class_idx = "17"
     img_path = Path(current_img_path)
     annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
@@ -1397,15 +1401,13 @@ def change_class_to_fail(obj_to_edit):
 
     new_yolo_line = yolo_format(
         _new_class_idx,
-        (xmin, ymin),
-        (xmax, ymax),
+        (_x_min, _y_min),
+        (_x_max, _y_max),
         width,
         height,
     )
     # Idea: height and width ought to be stored
     ind = findIndex(obj_to_edit)
-    i = 0
-
     with open(annotation_path, "w") as new_file:
         for i, line in enumerate(lines):
             if i != ind:
