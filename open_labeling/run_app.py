@@ -34,7 +34,7 @@ CLASS_RGB = [
     (50, 0, 255),
 ]
 class_rgb = np.array([])
-
+parsed_args = None
 GUIDE_LINE_THICKNESS = 1
 CLASS_LIST = get_class_list_from_text_file()
 MAX_CLASS_INDEX = len(CLASS_LIST) - 1
@@ -52,7 +52,7 @@ except cv2.error:
     print("-> Please ignore this error message\n")
 
 cv2.destroyAllWindows()
-current_img_path = None
+current_img_in_video_path = None
 tracker_dir = "./"
 output_dir = "./"
 input_dir = "./"
@@ -281,6 +281,10 @@ def display_text(text, time):
 
 def load_image_at_index(x):
     global img_index, img, last_img_index, image_paths_list
+    if len(image_paths_list) == 0:
+        exit(0)
+    elif x >= len(image_paths_list):
+        x = 0
     img_index = x
     img_path = image_paths_list[img_index]
     img = cv2.imread(str(img_path))
@@ -552,7 +556,7 @@ def edit_bbox(obj_to_edit, action):
     `change_class:new_class_index`
     `resize_bbox:new_x_left:new_y_top:new_x_right:new_y_bottom`
     """
-    global tracker_dir, img_index, image_paths_list, current_img_path, width, height
+    global tracker_dir, img_index, image_paths_list, current_img_in_video_path, width, height
     if "change_class" in action:
         new_class_index = int(action.split(":")[1])
     elif "resize_bbox" in action:
@@ -564,8 +568,8 @@ def edit_bbox(obj_to_edit, action):
     # 1. initialize bboxes_to_edit_dict
     #    (we use a dict since a single label can be associated with multiple ones in videos)
     bboxes_to_edit_dict = {}
-    current_img_path = image_paths_list[img_index]
-    bboxes_to_edit_dict[current_img_path] = obj_to_edit
+    current_img_in_video_path = image_paths_list[img_index]
+    bboxes_to_edit_dict[current_img_in_video_path] = obj_to_edit
 
     # 2. add elements to bboxes_to_edit_dict
     """
@@ -573,7 +577,7 @@ def edit_bbox(obj_to_edit, action):
         we must also edit the next predicted bboxes associated to the same `anchor_id`.
     """
     # if `current_img_path` is a frame from a video
-    is_from_video, video_name = is_frame_from_video(current_img_path)
+    is_from_video, video_name = is_frame_from_video(current_img_in_video_path)
     if is_from_video:
         # get json file corresponding to that video
         json_file_path = "{}.json".format(os.path.join(tracker_dir, video_name))
@@ -583,7 +587,7 @@ def edit_bbox(obj_to_edit, action):
             # match obj_to_edit with the corresponding json object
             frame_data_dict = json_file_data["frame_data_dict"]
             json_object_list = get_json_file_object_list(
-                current_img_path, frame_data_dict
+                current_img_in_video_path, frame_data_dict
             )
             obj_matched = get_json_object_dict(obj_to_edit, json_object_list)
             # if match found
@@ -591,13 +595,13 @@ def edit_bbox(obj_to_edit, action):
                 # get this object's anchor_id
                 anchor_id = obj_matched["anchor_id"]
 
-                frame_path_list = get_next_frame_path_list(video_name, current_img_path)
-                frame_path_list.insert(0, current_img_path)
+                frame_path_list = get_next_frame_path_list(video_name, current_img_in_video_path)
+                frame_path_list.insert(0, current_img_in_video_path)
 
                 if "change_class" in action:
                     # add also the previous frames
                     prev_path_list = get_prev_frame_path_list(
-                        video_name, current_img_path
+                        video_name, current_img_in_video_path
                     )
                     frame_path_list = prev_path_list + frame_path_list
 
@@ -724,6 +728,8 @@ def mouse_listener(event, x, y, flags, param):
                         is_bbox_selected = False
                     elif is_mouse_inside_image_delete_button():
                         delete_image()
+                        cv2.destroyAllWindows()
+                        main(args=parsed_args)
                     else:  # first click (start drawing a bounding box or delete an item)
                         point_1 = (x, y)
                 else:
@@ -1066,7 +1072,7 @@ def complement_bgr(color):
 
 def delete_image():
     # Create the Window
-    global tracker_dir, img_index, image_paths_list, current_img_path
+    global tracker_dir, img_index, image_paths_list, current_img_in_video_path
     layout = [[Sg.Text("Are you sure that you want to delete this image permanently?")],
               [Sg.OK(), Sg.Cancel()]]
     windowSg = Sg.Window("Confirm Delete", layout)
@@ -1076,13 +1082,13 @@ def delete_image():
         if event in (Sg.WIN_CLOSED, "Cancel"):
             break
         elif event == "OK":
-            if current_img_path is None:
+            if current_img_in_video_path is None:
                 break
-            img_path = Path(current_img_path)
+            img_path = Path(image_paths_list[img_index])
             annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
-            img_index = increase_index(img_index, last_img_index)
+            image_paths_list.remove(img_path)
             load_image_at_index(img_index)
-            os.unlink(str(current_img_path))
+            os.unlink(str(img_path))
             os.unlink(str(annotation_path))
             break
 
@@ -1090,11 +1096,11 @@ def delete_image():
 
 
 def main(args):
-    global current_img_path, img_index, last_img_index, is_bbox_selected, selected_bbox, img_objects
+    global current_img_in_video_path, img_index, last_img_index, img_objects
     global class_index, class_rgb
     global tracker_dir, draw_from_pascal
     global input_dir, output_dir, n_frames
-    global point_1, point_2, width, height
+    global point_1, point_2, width, height, selected_bbox, is_bbox_selected, prev_was_double_click
     global base_level_line_thickness
 
     if args.class_list:
@@ -1110,7 +1116,7 @@ def main(args):
         from dasiamrpn import dasiamrpn
     image_file_paths = []
     if args.files_list and len(args.files_list) > 0:
-        image_file_paths = [Path(file_path) for file_path in args.files_list]
+        image_file_paths = [Path(file_path) for file_path in args.files_list if Path(file_path).exists()]
     elif args.input_dir and Path(args.input_dir).exists():
         input_dir = Path(args.input_dir)
         if input_dir.is_dir():
@@ -1130,6 +1136,7 @@ def main(args):
     cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_KEEPRATIO)
     cv2.resizeWindow(WINDOW_NAME, 1000, 700)
     cv2.setMouseCallback(WINDOW_NAME, mouse_listener)
+    image_paths_list.clear()
     for f_path in image_file_paths:
         if os.path.isdir(f_path):
             # skip directories
@@ -1163,7 +1170,7 @@ def main(args):
                     (os.path.join(video_frames_path, frame) for frame in frame_list)
                 )
 
-    current_img_path = image_paths_list[0]
+    current_img_in_video_path = image_paths_list[0]
     last_img_index = len(image_paths_list) - 1
     if last_img_index == 0:  # hack: slider must have length > 0
         last_img_index += 1
@@ -1282,9 +1289,7 @@ def main(args):
                 save_bounding_box(
                     annotation_paths, class_index, point_1, point_2, width, height
                 )
-                # reset the points
-                point_1 = (-1, -1)
-                point_2 = (-1, -1)
+                reset_drag_points()
 
         cv2.imshow(WINDOW_NAME, tmp_img)
         pressed_key = cv2.waitKey(DELAY)
@@ -1378,8 +1383,10 @@ def main(args):
                 obj_to_edit = img_objects[selected_bbox]
                 change_class_to_fail(obj_to_edit)
                 is_bbox_selected = False
+                prev_was_double_click = False
+                reset_drag_points()
                 selected_bbox = -1
-                load_image_at_index(img_index)
+                #load_image_at_index(img_index)
             """ Key Listeners END """
 
         if WITH_QT:
@@ -1391,10 +1398,11 @@ def main(args):
 
 
 def change_class_to_fail(obj_to_edit):
-    global current_img_path
+    global current_img_in_video_path
     _class_idx, _x_min, _y_min, _x_max, _y_max = map(int, obj_to_edit)
     _new_class_idx = "17"
-    img_path = Path(current_img_path)
+    img_path = Path(image_paths_list[img_index])
+    '''img_path = Path(current_img_path)  # current_img_path only seems to be used in video frames'''
     annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
     with open(annotation_path, "r") as old_file:
         lines = old_file.readlines()
@@ -1416,12 +1424,19 @@ def change_class_to_fail(obj_to_edit):
                 new_file.write(new_yolo_line + "\n")
 
 
+def reset_drag_points():
+    global point_1, point_2
+    point_1 = (-1, -1)
+    point_2 = (-1, -1)
+
+
 if __name__ == "__main__":
-    args = get_args()
-    main(args=args)
+    parsed_args = get_args()
+    main(args=parsed_args)
 
 
 def test_main():
+    global parsed_args
     BASE_DIR = Path(__file__).parents[1] / "tests" / "test_data" / "Photos"
 
     class Args:
@@ -1437,5 +1452,5 @@ def test_main():
             "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
         )
 
-    args = Args()
-    main(args=args)
+    parsed_args = Args()
+    main(args=parsed_args)
