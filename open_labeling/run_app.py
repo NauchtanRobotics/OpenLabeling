@@ -1374,6 +1374,9 @@ def main(args):
             # quit key listener
             elif pressed_key == ord("q"):
                 break
+            elif pressed_key == ord("f") and is_bbox_selected:
+                obj_to_edit = img_objects[selected_bbox]
+                change_class_to_fail(obj_to_edit)
             """ Key Listeners END """
 
         if WITH_QT:
@@ -1382,6 +1385,33 @@ def main(args):
                 break
 
     cv2.destroyAllWindows()
+
+
+def change_class_to_fail(obj_to_edit):
+    _class_idx, xmin, ymin, xmax, ymax = map(int, obj_to_edit)
+    _new_class_idx = "17"
+    img_path = Path(current_img_path)
+    annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
+    with open(annotation_path, "r") as old_file:
+        lines = old_file.readlines()
+
+    new_yolo_line = yolo_format(
+        _new_class_idx,
+        (xmin, ymin),
+        (xmax, ymax),
+        width,
+        height,
+    )
+    # Idea: height and width ought to be stored
+    ind = findIndex(obj_to_edit)
+    i = 0
+
+    with open(annotation_path, "w") as new_file:
+        for i, line in enumerate(lines):
+            if i != ind:
+                new_file.write(line)
+            else:
+                new_file.write(new_yolo_line + "\n")
 
 
 if __name__ == "__main__":
