@@ -143,6 +143,12 @@ def get_args():
         type=int,
         help="number of frames to track object for",
     )
+    parser.add_argument(
+        "--goto",
+        default="0",
+        type=int,
+        help="advance to this image index in the sequence and open that image",
+    )
     args = parser.parse_args()
     return args
 
@@ -729,6 +735,8 @@ def mouse_listener(event, x, y, flags, param):
                     elif is_mouse_inside_image_delete_button():
                         delete_image()
                         cv2.destroyAllWindows()
+                        global parsed_args
+                        parsed_args.goto = img_index
                         main(args=parsed_args)
                     else:  # first click (start drawing a bounding box or delete an item)
                         point_1 = (x, y)
@@ -1204,8 +1212,11 @@ def main(args):
                 else:
                     raise RuntimeError("Support for VOC discontinued.")
     class_index = 0
-    img_index = 0
-    load_image_at_index(0)
+    if parsed_args.goto is not None:
+        img_index = parsed_args.goto
+    else:
+        img_index = 0
+    load_image_at_index(img_index)
 
     # Make the class colors the same each session
     # The colors are in BGR order because we're using OpenCV
@@ -1451,6 +1462,7 @@ def test_main():
             "D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
             "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
         )
+        goto = 0
 
     parsed_args = Args()
     main(args=parsed_args)
