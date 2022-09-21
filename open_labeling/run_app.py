@@ -1104,7 +1104,7 @@ def delete_image():
 
 
 def main(args):
-    global current_img_in_video_path, img_index, last_img_index, img_objects
+    global current_img_in_video_path, img_index, last_img_index, img_objects, image_paths_list
     global class_index, class_rgb
     global tracker_dir, draw_from_pascal
     global input_dir, output_dir, n_frames
@@ -1145,38 +1145,42 @@ def main(args):
     cv2.resizeWindow(WINDOW_NAME, 1000, 700)
     cv2.setMouseCallback(WINDOW_NAME, mouse_listener)
     image_paths_list.clear()
-    for f_path in image_file_paths:
-        if os.path.isdir(f_path):
-            # skip directories
-            continue
-        # check if it is an image
-        print(f"File path: {str(f_path)}")
-        test_img = cv2.imread(str(f_path))
-        if test_img is not None:
-            image_paths_list.append(f_path)
-        else:
-            # test if it is a video
-            test_video_cap = cv2.VideoCapture(f_path)
-            n_frames = int(test_video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
-            test_video_cap.release()
-            if n_frames > 0:
-                # it is a video
-                desired_img_format = ".jpg"
-                video_frames_path, video_name_ext = convert_video_to_images(
-                    f_path, n_frames, desired_img_format
-                )
-                # add video frames to image list
-                frame_list = sorted(os.listdir(video_frames_path), key=natural_sort_key)
-                ## store information about those frames
-                first_index = len(image_file_paths)
-                last_index = first_index + len(frame_list)  # exclusive
-                indexes_dict = {}
-                indexes_dict["first_index"] = first_index
-                indexes_dict["last_index"] = last_index
-                video_name_map[video_name_ext] = indexes_dict
-                image_paths_list.extend(
-                    (os.path.join(video_frames_path, frame) for frame in frame_list)
-                )
+    # This next section adds robustness to handle videos mixed up in image data
+    # for f_path in image_file_paths:
+    #     if os.path.isdir(f_path):
+    #         # skip directories
+    #         continue
+    #     # check if it is an image
+    #     print(f"File path: {str(f_path)}")
+    #     test_img = cv2.imread(str(f_path))
+    #     if test_img is not None:
+    #         image_paths_list.append(f_path)
+    #     else:
+    #         # test if it is a video
+    #         test_video_cap = cv2.VideoCapture(f_path)
+    #         n_frames = int(test_video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    #         test_video_cap.release()
+    #         if n_frames > 0:
+    #             # it is a video
+    #             desired_img_format = ".jpg"
+    #             video_frames_path, video_name_ext = convert_video_to_images(
+    #                 f_path, n_frames, desired_img_format
+    #             )
+    #             # add video frames to image list
+    #             frame_list = sorted(os.listdir(video_frames_path), key=natural_sort_key)
+    #             ## store information about those frames
+    #             first_index = len(image_file_paths)
+    #             last_index = first_index + len(frame_list)  # exclusive
+    #             indexes_dict = {}
+    #             indexes_dict["first_index"] = first_index
+    #             indexes_dict["last_index"] = last_index
+    #             video_name_map[video_name_ext] = indexes_dict
+    #             image_paths_list.extend(
+    #                 (os.path.join(video_frames_path, frame) for frame in frame_list)
+    #             )
+    # but this way is faster if we are confident that we only have images
+    image_paths_list = [img_path for img_path in image_file_paths if
+                        img_path.is_file() and img_path.suffix.lower() in {".jpg", ".png"}]
 
     current_img_in_video_path = image_paths_list[0]
     last_img_index = len(image_paths_list) - 1
