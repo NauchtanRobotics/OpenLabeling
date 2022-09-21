@@ -1234,7 +1234,7 @@ def main(args):
 
     # selected image
     cv2.createTrackbar(
-        TRACKBAR_IMG, WINDOW_NAME, 0, last_img_index, load_image_at_index
+        TRACKBAR_IMG, WINDOW_NAME, img_index, last_img_index, load_image_at_index
     )
 
     # selected class
