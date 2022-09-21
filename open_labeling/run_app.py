@@ -1104,6 +1104,8 @@ def delete_image():
 
 
 def main(args):
+    global parsed_args
+    parsed_args = args
     global current_img_in_video_path, img_index, last_img_index, img_objects, image_paths_list
     global class_index, class_rgb
     global tracker_dir, draw_from_pascal
