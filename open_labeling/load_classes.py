@@ -29,8 +29,13 @@ def get_class_list_from_text_file():
     else:
         classes_src = most_recent_classes_file
 
-    with open(classes_src) as f:
-        return list(non_blank_lines(file_object=f))
+    try:
+        with open(classes_src) as f:
+            classes_labels = list(non_blank_lines(file_object=f))
+    except:
+        classes_labels = []
+    print("Will use these labels instead: " + ", ".join(classes_labels))
+    return classes_labels
 
 
 def update_class_list_from_args(args) -> Tuple[List, int]:

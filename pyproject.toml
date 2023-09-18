@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "open-labeling"
-version = "0.2.16"
+version = "0.2.17"
 description = ""
 authors = ["Your Name <you@example.com>"]
 packages = [
@@ -15,7 +15,7 @@ numpy = [
     { version = "^1.21.0", platform = 'linux' },
 ]
 opencv-contrib-python = [
-    { version = "==3.4.9.33", platform = 'win32' },
+    { version = ">=3.4.11.45", platform = 'win32' },
     { version = "^3.4.9.33", platform = 'linux' },
 ]
 tqdm = "^4.29"
@@ -29,5 +29,5 @@ requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-label_folder = "open_labeling.launcher:main"
+label_folder = "open_labeling.launcher:label_folder"
 label_image = "open_labeling.edit_image:run"
