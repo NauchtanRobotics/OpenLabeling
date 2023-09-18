@@ -1218,7 +1218,7 @@ def main(args):
                 else:
                     raise RuntimeError("Support for VOC discontinued.")
     class_index = 0
-    if parsed_args.goto is not None:
+    if "goto" in parsed_args and parsed_args.goto is not None:
         img_index = parsed_args.goto
     else:
         img_index = 0
