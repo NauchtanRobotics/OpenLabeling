@@ -10,7 +10,10 @@ from open_labeling.common import check_if_folder_contains_sufficient_images
 if sys.platform == "win32":
     SYS_STDOUT = subprocess.PIPE  # Prefer to use sys.stdout instead of
     SYS_STDERR = subprocess.PIPE  # subprocess.PIPE, but causes Windows to fail
-    result = subprocess.check_output(["where", "poetry.bat"])
+    try:
+        result = subprocess.check_output(["where", "poetry.bat"])
+    except:
+        result = subprocess.check_output(["where", "poetry"])
 else:
     SYS_STDOUT = sys.stdout
     SYS_STDERR = sys.stderr
