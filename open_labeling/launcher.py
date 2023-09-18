@@ -24,7 +24,7 @@ POETRY_APP = Path(POETRY_APP.decode("utf-8"))
 SCRIPT_PATH = Path(__file__).parent / "run_app.py"
 
 CLASS_LIST = ["D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
-              "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+              "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD"]
 
 
 def get_args():
