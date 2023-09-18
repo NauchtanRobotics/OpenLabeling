@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 import subprocess
 import threading
@@ -61,6 +62,11 @@ def main(args):
 
     file_list_column = [
         [
+            sg.Text(text="Class definitions JSON file", size=(25, 1)),
+            sg.In(size=(40, 1), enable_events=True, key="-JSON-"),
+            sg.FileBrowse(),
+        ],
+        [
             sg.Text("Image Folder"),
             sg.In(size=(40, 1), enable_events=True, key="-FOLDER-"),
             sg.FolderBrowse(),
@@ -79,6 +85,14 @@ def main(args):
         event, values = window.read()
         if event == "Exit" or event == sg.WIN_CLOSED:
             break
+
+        if event == "-JSON-":
+            classes_json_fp = Path(values["-JSON-"])
+            with open(str(classes_json_fp), "r") as file_obj:
+                classes_dict = json.load(file_obj)
+                #class_ids = list(classes_dict.keys())
+                class_list = [class_info["label"] for class_id, class_info in classes_dict.items()]
+            print("Loaded classes: [" + ", ".join(class_list) + "]")
 
         # Folder name was filled in, make a list of files in the folder
         if event == "-FOLDER-":
