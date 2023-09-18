@@ -40,6 +40,11 @@ def get_args():
     return args
 
 
+def label_folder():
+    args = get_args()
+    main(args)
+
+
 def main(args):
     if args.class_list:
         class_list = args.class_list
