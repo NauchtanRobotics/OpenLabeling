@@ -15,7 +15,7 @@ numpy = [
     { version = "^1.21.0", platform = 'linux' },
 ]
 opencv-contrib-python = [
-    { version = "==3.4.9.33", platform = 'win32' },
+    { version = ">=3.4.11.45", platform = 'win32' },
     { version = "^3.4.9.33", platform = 'linux' },
 ]
 tqdm = "^4.29"
