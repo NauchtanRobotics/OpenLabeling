@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import List
 
-from cv2 import cv2
+import cv2
 import numpy as np
 from tqdm import tqdm
 
