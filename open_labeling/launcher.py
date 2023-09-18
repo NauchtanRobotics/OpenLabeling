@@ -67,7 +67,7 @@ def main(args):
             sg.FileBrowse(),
         ],
         [
-            sg.Text("Image Folder"),
+            sg.Text(text="Image Folder", size=(25, 1)),
             sg.In(size=(40, 1), enable_events=True, key="-FOLDER-"),
             sg.FolderBrowse(),
         ],
