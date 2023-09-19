@@ -11,8 +11,8 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
 numpy = [
-    { version = "^1.16.0", platform = 'win32' },
-    { version = "^1.21.0", platform = 'linux' },
+    { version = ">=1.22,<=1.24.3", platform = 'win32' },
+    { version = ">=1.22,<=1.24.3", platform = 'linux' },
 ]
 opencv-contrib-python = [
     { version = ">=3.4.11.45", platform = 'win32' },
