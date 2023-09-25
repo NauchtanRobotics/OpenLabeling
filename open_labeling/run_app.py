@@ -297,7 +297,7 @@ def load_image_at_index(x):
     text = "Showing image {}/{}, path: {}".format(
         str(img_index), str(last_img_index), img_path
     )
-    display_text(text, 1000)
+    display_text(text, 2000)
 
 
 def set_class_index(x):
