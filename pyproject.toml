@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "open-labeling"
-version = "0.2.18"
+version = "0.2.19"
 description = ""
 authors = ["Your Name <you@example.com>"]
 packages = [

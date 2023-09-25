@@ -297,7 +297,7 @@ def load_image_at_index(x):
     text = "Showing image {}/{}, path: {}".format(
         str(img_index), str(last_img_index), img_path
     )
-    display_text(text, 1000)
+    display_text(text, 2000)
 
 
 def set_class_index(x):
@@ -498,10 +498,20 @@ def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
                                 tmp_img, xmin, ymin, xmax, ymax, color
                             )
                     font = cv2.FONT_HERSHEY_SIMPLEX
+                    width_label = len(class_name) * 15 + 7
+                    if ymin > 20:
+                        y_label = ymin - 5
+                        x_label = xmin
+                    else:
+                        y_label = ymin + 20
+                        if xmin > width_label:
+                            x_label = xmin - width_label
+                        else:
+                            x_label = xmin + 5
                     cv2.putText(
                         tmp_img,
                         class_name,
-                        (xmin, ymin - 5),
+                        (x_label, y_label),
                         font,
                         0.6,
                         color,
@@ -1218,7 +1228,7 @@ def main(args):
                 else:
                     raise RuntimeError("Support for VOC discontinued.")
     class_index = 0
-    if "goto" in parsed_args and parsed_args.goto is not None:
+    if hasattr(parsed_args, "goto") and parsed_args.goto is not None:
         img_index = parsed_args.goto
     else:
         img_index = 0
@@ -1454,9 +1464,11 @@ if __name__ == "__main__":
 
 def test_main():
     global parsed_args
-    BASE_DIR = Path(__file__).parents[1] / "tests" / "test_data" / "Photos"
+    # BASE_DIR = Path(__file__).parents[1] / "tests" / "test_data" / "Photos"
+    BASE_DIR = Path("/home/david/production/sealed_roads_dataset/Toowoomba_2023_1")
 
     class Args:
+        goto = None
         input_dir = f"{str(BASE_DIR)}"
         output_dir = f"{str(BASE_DIR)}"
         thickness = 1
@@ -1466,9 +1478,8 @@ def test_main():
         draw_from_PASCAL_files = False
         class_list = (
             "D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
-            "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
+            "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH"
         )
-        goto = 0
 
     parsed_args = Args()
     main(args=parsed_args)
