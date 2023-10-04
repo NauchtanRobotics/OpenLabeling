@@ -49,7 +49,7 @@ def label_folder():
 def main(args):
     if args.class_list:
         class_list = args.class_list
-        print("\nUsing class List provided: ")
+        print("\nUsing class-list provided: ")
     else:
         class_list = CLASS_LIST
         print("\nAssuming class List: ")
@@ -60,10 +60,19 @@ def main(args):
     if not SCRIPT_PATH.exists():
         raise Exception("\nApp path not found: {}".format(str(SCRIPT_PATH)))
 
+    potential_classes_json = (Path.cwd()) / "classes.json"
+    print(f"Script was called from {str(Path.cwd())}")
+    if potential_classes_json.exists():
+        default_json_path = str(potential_classes_json)
+    else:
+        default_json_path = ""
+    # file_list_column = []
+    if args.class_list:
+        print("class_list was passed in. Showing file browser for classes.json anyway.")
     file_list_column = [
         [
             sg.Text(text="Class definitions JSON file", size=(25, 1)),
-            sg.In(size=(40, 1), enable_events=True, key="-JSON-"),
+            sg.In(default_text=default_json_path, size=(40, 1), enable_events=True, key="-JSON-"),
             sg.FileBrowse(),
         ],
         [
