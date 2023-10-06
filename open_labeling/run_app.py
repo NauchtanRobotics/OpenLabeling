@@ -295,10 +295,10 @@ def load_image_at_index(x):
     img_index = x
     img_path = image_paths_list[img_index]
     img = cv2.imread(str(img_path))
-    text = "Showing image {}/{}, path: {}".format(
-        str(img_index), str(last_img_index), img_path
-    )
-    display_text(text, 2000)
+    # text = "Showing image {}/{}, path: {}".format(
+    #     str(img_index), str(last_img_index), img_path
+    # )
+    # display_text(text, 2000)
 
 
 def set_class_index(x):
@@ -1337,6 +1337,7 @@ def main(args):
                     img_index = increase_index(img_index, last_img_index)
                 load_image_at_index(img_index)
                 cv2.setTrackbarPos(TRACKBAR_IMG, WINDOW_NAME, img_index)
+                cv2.setWindowTitle(WINDOW_NAME, "OpenLabeling: " + image_name)
                 time.sleep(0.2)
             elif pressed_key == ord("s") or pressed_key == ord("w"):
                 # change down current class key listener
