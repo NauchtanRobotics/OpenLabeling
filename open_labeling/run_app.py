@@ -1,6 +1,7 @@
 import argparse
 import PySimpleGUI as Sg
 import json
+import pyperclip
 import os
 import re
 import time
@@ -294,10 +295,10 @@ def load_image_at_index(x):
     img_index = x
     img_path = image_paths_list[img_index]
     img = cv2.imread(str(img_path))
-    text = "Showing image {}/{}, path: {}".format(
-        str(img_index), str(last_img_index), img_path
-    )
-    display_text(text, 2000)
+    # text = "Showing image {}/{}, path: {}".format(
+    #     str(img_index), str(last_img_index), img_path
+    # )
+    # display_text(text, 2000)
 
 
 def set_class_index(x):
@@ -703,7 +704,7 @@ def edit_bbox(obj_to_edit, action):
 
 def mouse_listener(event, x, y, flags, param):
     # mouse callback function
-    global is_bbox_selected, prev_was_double_click, mouse_x, mouse_y, point_1, point_2
+    global is_bbox_selected, prev_was_double_click, mouse_x, mouse_y, point_1, point_2, img_index, image_paths_list
 
     set_class = True
     if event == cv2.EVENT_MOUSEMOVE:
@@ -723,6 +724,10 @@ def mouse_listener(event, x, y, flags, param):
             obj_to_edit = img_objects[selected_bbox]
             edit_bbox(obj_to_edit, "delete")
             is_bbox_selected = False
+        else:
+            image_pth = image_paths_list[img_index]
+            pyperclip.copy(str(image_pth))
+            display_text("Copied image path to clipboard", 4000)
     elif event == cv2.EVENT_LBUTTONDOWN:
         if prev_was_double_click:
             # print('Finish double click')
@@ -1332,6 +1337,7 @@ def main(args):
                     img_index = increase_index(img_index, last_img_index)
                 load_image_at_index(img_index)
                 cv2.setTrackbarPos(TRACKBAR_IMG, WINDOW_NAME, img_index)
+                cv2.setWindowTitle(WINDOW_NAME, "OpenLabeling: " + image_name)
                 time.sleep(0.2)
             elif pressed_key == ord("s") or pressed_key == ord("w"):
                 # change down current class key listener
