@@ -1,6 +1,7 @@
 import argparse
 import PySimpleGUI as Sg
 import json
+import pyperclip
 import os
 import re
 import time
@@ -703,7 +704,7 @@ def edit_bbox(obj_to_edit, action):
 
 def mouse_listener(event, x, y, flags, param):
     # mouse callback function
-    global is_bbox_selected, prev_was_double_click, mouse_x, mouse_y, point_1, point_2
+    global is_bbox_selected, prev_was_double_click, mouse_x, mouse_y, point_1, point_2, img_index, image_paths_list
 
     set_class = True
     if event == cv2.EVENT_MOUSEMOVE:
@@ -723,6 +724,10 @@ def mouse_listener(event, x, y, flags, param):
             obj_to_edit = img_objects[selected_bbox]
             edit_bbox(obj_to_edit, "delete")
             is_bbox_selected = False
+        else:
+            image_pth = image_paths_list[img_index]
+            pyperclip.copy(str(image_pth))
+            display_text("Copied image path to clipboard", 4000)
     elif event == cv2.EVENT_LBUTTONDOWN:
         if prev_was_double_click:
             # print('Finish double click')
