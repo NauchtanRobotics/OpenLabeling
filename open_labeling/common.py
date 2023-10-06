@@ -1,4 +1,17 @@
+# import os
+# import sys
 from pathlib import Path
+
+#
+# def resource_path(relative_path):
+#     """ Get the absolute path to the resource, works for dev and for PyInstaller """
+#     try:
+#         # PyInstaller creates a temp folder and stores path in _MEIPASS
+#         base_path = sys._MEIPASS
+#     except Exception:
+#         base_path = os.path.abspath(".")
+#
+#     return os.path.join(base_path, relative_path)
 
 
 def check_if_folder_contains_sufficient_images(input_dir: Path, threshold: int = 3):

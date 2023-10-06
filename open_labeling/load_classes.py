@@ -21,6 +21,8 @@ def get_class_list_from_text_file():
     config = configparser.ConfigParser()
     this_dir = Path(__file__).parent
     config_path = this_dir / "config.ini"
+    if not config_path.exists():
+        raise RuntimeError(str(config_path) + " does not exist.")
     config.read(str(config_path))
     most_recent_classes_file = config.get("CLASSES", "MOST_RECENT_FILE")
 

@@ -13,16 +13,27 @@ if sys.platform == "win32":
     SYS_STDERR = subprocess.PIPE  # subprocess.PIPE, but causes Windows to fail
     try:
         result = subprocess.check_output(["where", "poetry.bat"])
+        POETRY_APP = result.splitlines()[0]
+        POETRY_APP = Path(POETRY_APP.decode("utf-8"))
+        print("where poetry.bat? " + result.decode("utf-8"))
     except:
-        result = subprocess.check_output(["where", "poetry"])
+        try:
+            result = subprocess.check_output(["where", "poetry"])
+            POETRY_APP = result.splitlines()[0]
+            POETRY_APP = Path(POETRY_APP.decode("utf-8"))
+            print("where poetry? " + result.decode("utf-8"))
+        except:
+            print("Python-poetry not found. ")
+            result = None
+            POETRY_APP = None
+
 else:
     SYS_STDOUT = sys.stdout
     SYS_STDERR = sys.stderr
     result = subprocess.check_output(["which", "poetry"])
 
-POETRY_APP = result.splitlines()[0]
-POETRY_APP = Path(POETRY_APP.decode("utf-8"))
 SCRIPT_PATH = Path(__file__).parent / "run_app.py"
+print(str(SCRIPT_PATH))
 
 CLASS_LIST = ["D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
               "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD"]
@@ -55,8 +66,8 @@ def main(args):
         print("\nAssuming class List: ")
     print(class_list)
 
-    if not POETRY_APP.exists():
-        raise Exception("\nPoetry app not found: {}".format(str(POETRY_APP)))
+    # if not POETRY_APP.exists():
+    #     raise Exception("\nPoetry app not found: {}".format(str(POETRY_APP)))
     if not SCRIPT_PATH.exists():
         raise Exception("\nApp path not found: {}".format(str(SCRIPT_PATH)))
 
@@ -100,16 +111,29 @@ def main(args):
             check_if_folder_contains_sufficient_images(input_dir=folder)
 
             def call_run_app(folder):
-                cmd = [
-                    str(POETRY_APP),
-                    "run",
-                    "python",
-                    str(SCRIPT_PATH),
-                    "-i",
-                    str(folder),
-                    "-c",
-                    *class_list,
-                ]
+                if POETRY_APP is not None:
+                    cmd = [
+                        str(POETRY_APP),
+                        "run",
+                        "python",
+                        str(SCRIPT_PATH),
+                        "-i",
+                        str(folder),
+                        "-c",
+                        *class_list,
+                    ]
+                    print("Will launch using python-poetry." + "\n" + str(SCRIPT_PATH) + "\n" + str(folder))
+                else:
+                    cmd = [
+                        "py",
+                        str(SCRIPT_PATH),
+                        "-i",
+                        str(folder),
+                        "-c",
+                        *class_list,
+                    ]
+                    print("Launching GUI without using python-poetry. " + "\n" + str(SCRIPT_PATH) + "\n" + str(folder))
+
                 subprocess.run(cmd, stdout=SYS_STDOUT, stderr=SYS_STDERR, check=True)
 
             open_labeling_thread = threading.Thread(
@@ -123,8 +147,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parsed_args = get_args()
-    main(args=parsed_args)
+    label_folder()
 
 
 def test_launch():

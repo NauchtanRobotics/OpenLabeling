@@ -150,6 +150,7 @@ def get_args():
         help="advance to this image index in the sequence and open that image",
     )
     args = parser.parse_args()
+    print("Parsed args")
     return args
 
 
