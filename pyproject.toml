@@ -20,6 +20,7 @@ opencv-contrib-python = [
 ]
 tqdm = "^4.29"
 PySimpleGUI = "^4.55.1"
+pyperclip = "^1.8.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
