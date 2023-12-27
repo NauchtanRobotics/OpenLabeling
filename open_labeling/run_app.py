@@ -1148,10 +1148,10 @@ def main(args):
             image_file_paths = list(Path(input_dir).iterdir())
             image_file_paths = sorted(image_file_paths, key=natural_sort_key)
         elif input_dir.is_file():
-            if input_dir.suffix in [".jpg", ".JPG"]:
+            if input_dir.suffix.lower() in [".jpg", ".ppm", ".png"]:
                 image_file_paths = [input_dir]
             else:
-                raise Exception("Input is not a jpg file.")
+                raise Exception("Input is not a jpg, png or ppm image file.")
         else:
             pass  # If it exists it must be a dir or a file.
     else:
@@ -1197,7 +1197,7 @@ def main(args):
     #             )
     # but this way is faster if we are confident that we only have images
     image_paths_list = [img_path for img_path in image_file_paths if
-                        img_path.is_file() and img_path.suffix.lower() in {".jpg", ".png"}]
+                        img_path.is_file() and img_path.suffix.lower() in {".jpg", ".png", ".ppm"}]
 
     current_img_in_video_path = image_paths_list[0]
     last_img_index = len(image_paths_list) - 1

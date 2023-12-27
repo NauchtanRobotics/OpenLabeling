@@ -10,7 +10,8 @@ def check_if_folder_contains_sufficient_images(input_dir: Path, threshold: int =
         raise RuntimeError("")
     image_file_paths = list(input_dir.iterdir())
     image_file_paths = [
-        image_file_path for image_file_path in image_file_paths if image_file_path.suffix.lower() == ".jpg"
+        image_file_path for image_file_path in image_file_paths
+        if image_file_path.suffix.lower() in [".jpg", ".ppm", ".png"]
     ]
     if len(image_file_paths) <= threshold:
         raise RuntimeError(
