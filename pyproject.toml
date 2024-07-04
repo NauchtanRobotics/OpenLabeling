@@ -19,7 +19,6 @@ opencv-contrib-python = [
     { version = "^4.4.9.33", platform = 'linux' },
 ]
 tqdm = "^4.29"
-PySimpleGUI = "^5.0.6"
 pyperclip = "^1.8.2"
 
 [tool.poetry.dev-dependencies]
