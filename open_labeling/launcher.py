@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 import subprocess
 import threading
@@ -28,7 +29,7 @@ def get_args():
     parser.add_argument(
         "-c",
         "--class-list",
-        required=True,
+        required=False,
         nargs="*",
         help="Pass in the class list instead of reading from txt file.",
     )
@@ -39,6 +40,17 @@ def get_args():
         help="The full path to root directory for images. Annotation should be in a sub-folder 'YOLO_Darknet'",
     )
     args = parser.parse_args()
+    if args.class_list is None:
+        potential_src_file = Path(args.root_folder).parent / "classes.json"
+        if not potential_src_file.exists():
+            print("You didn't provide an arg for classes (-c). Defaulting to dummy test classes.")
+            args.class_list = TEST_CLASSES
+        else:  # load the keys from this json file
+            with open(str(potential_src_file), 'r') as file:
+                # Parse the JSON data from the file into a Python dictionary
+                classes_info = json.load(file)
+                args.class_list = [val["label"] for _, val in classes_info.items()]
+
     return args
 
 
@@ -57,7 +69,7 @@ def main(args):
     print("\nClass List: ")
     print(args.class_list)
 
-    check_if_folder_contains_sufficient_images(input_dir=args.root_folder)
+    check_if_folder_contains_sufficient_images(input_dir=Path(args.root_folder))
 
     def call_run_app(folder):
         cmd = [
@@ -86,7 +98,9 @@ if __name__ == "__main__":
 
 
 TEST_CLASSES = ["D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
-              "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD"]
+                "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH",
+                "AI", "AJ", "AK", "AL"]
+
 TEST_ROOT_DIR = Path(__file__).parent.parent / "tests" / "test_data" / "Photos"
 
 
@@ -96,3 +110,13 @@ def test_launch():
         root_folder = TEST_ROOT_DIR
 
     main(args=Args())
+
+
+def test_launcher():
+    test_dir = Path("/media/david/PortableSSD/traffic_signs_dataset/Beaudesert_Road_Calamvale")
+    assert test_dir.exists()
+    assert test_dir.is_dir()
+
+    sys.argv[1] = f"-f={test_dir}"
+    args = get_args()
+    main(args)
