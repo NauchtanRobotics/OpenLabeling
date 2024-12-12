@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "open-labeling"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = ["Your Name <you@example.com>"]
 packages = [
@@ -13,10 +13,12 @@ python = ">=3.10"
 numpy = [
     { version = "^2.0.0", platform = 'win32' },
     { version = "^2.0.0", platform = 'linux' },
+    { version = "^2.0.0", platform = 'darwin' },
 ]
 opencv-contrib-python = [
     { version = "^4.10.0.84", platform = 'win32' },
     { version = "^4.4.9.33", platform = 'linux' },
+    { version = "^4.4.9.33", platform = 'darwin' },
 ]
 tqdm = "^4.29"
 pyperclip = "^1.8.2"
