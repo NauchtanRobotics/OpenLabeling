@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "open-labeling"
-version = "0.2.22"
+version = "0.3.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 packages = [
@@ -9,21 +9,20 @@ packages = [
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = ">=3.10"
 numpy = [
-    { version = ">=1.22,<=1.24.3", platform = 'win32' },
-    { version = ">=1.22,<=1.24.3", platform = 'linux' },
+    { version = "^2.0.0", platform = 'win32' },
+    { version = "^2.0.0", platform = 'linux' },
 ]
 opencv-contrib-python = [
-    { version = ">=3.4.11.45", platform = 'win32' },
-    { version = "^3.4.9.33", platform = 'linux' },
+    { version = "^4.10.0.84", platform = 'win32' },
+    { version = "^4.4.9.33", platform = 'linux' },
 ]
 tqdm = "^4.29"
-PySimpleGUI = "^4.55.1"
 pyperclip = "^1.8.2"
 
 [tool.poetry.dev-dependencies]
-pytest = "^6.2.5"
+pytest = "^8.2.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

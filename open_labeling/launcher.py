@@ -3,7 +3,6 @@ import json
 import sys
 import subprocess
 import threading
-import PySimpleGUI as sg
 from pathlib import Path
 
 from open_labeling.common import check_if_folder_contains_sufficient_images
@@ -24,111 +23,73 @@ POETRY_APP = result.splitlines()[0]
 POETRY_APP = Path(POETRY_APP.decode("utf-8"))
 SCRIPT_PATH = Path(__file__).parent / "run_app.py"
 
-CLASS_LIST = ["D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
-              "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD"]
-
 
 def get_args():
     parser = argparse.ArgumentParser(description="Open-source image labeling tool")
     parser.add_argument(
         "-c",
         "--class-list",
-        default=None,
+        required=False,
         nargs="*",
         help="Pass in the class list instead of reading from txt file.",
     )
+    parser.add_argument(
+        "-f",
+        "--root-folder",
+        required=True,
+        help="The full path to root directory for images. Annotation should be in a sub-folder 'YOLO_Darknet'",
+    )
     args = parser.parse_args()
+    if args.class_list is None:
+        potential_src_file = Path(args.root_folder).parent / "classes.json"
+        if not potential_src_file.exists():
+            print("You didn't provide an arg for classes (-c). Defaulting to dummy test classes.")
+            args.class_list = TEST_CLASSES
+        else:  # load the keys from this json file
+            with open(str(potential_src_file), 'r') as file:
+                # Parse the JSON data from the file into a Python dictionary
+                classes_info = json.load(file)
+                args.class_list = [val["label"] for _, val in classes_info.items()]
+
     return args
 
 
-def label_folder():
+def label_folder():  # Can be used for entry points - well if arguments are passed.
     args = get_args()
     main(args)
 
 
 def main(args):
-    if args.class_list:
-        class_list = args.class_list
-        print("\nUsing class-list provided: ")
-    else:
-        class_list = CLASS_LIST
-        print("\nAssuming class List: ")
-    print(class_list)
-
     if not POETRY_APP.exists():
         raise Exception("\nPoetry app not found: {}".format(str(POETRY_APP)))
+
     if not SCRIPT_PATH.exists():
         raise Exception("\nApp path not found: {}".format(str(SCRIPT_PATH)))
 
-    potential_classes_json = (Path.cwd()) / "classes.json"
-    print(f"Script was called from {str(Path.cwd())}")
-    if potential_classes_json.exists():
-        default_json_path = str(potential_classes_json)
-    else:
-        default_json_path = ""
-    # file_list_column = []
-    if args.class_list:
-        print("class_list was passed in. Showing file browser for classes.json anyway.")
-    file_list_column = [
-        [
-            sg.Text(text="Class definitions JSON file", size=(25, 1)),
-            sg.In(default_text=default_json_path, size=(40, 1), enable_events=True, key="-JSON-"),
-            sg.FileBrowse(),
-        ],
-        [
-            sg.Text(text="Image Folder", size=(25, 1)),
-            sg.In(size=(40, 1), enable_events=True, key="-FOLDER-"),
-            sg.FolderBrowse(),
-        ],
-    ]
+    print("\nClass List: ")
+    print(args.class_list)
 
-    # ----- Full layout -----
-    layout = [
-        [
-            sg.Column(file_list_column),
+    check_if_folder_contains_sufficient_images(input_dir=Path(args.root_folder))
+
+    def call_run_app(folder):
+        cmd = [
+            str(POETRY_APP),
+            "run",
+            "python",
+            str(SCRIPT_PATH),
+            "-i",
+            str(folder),
+            "-c",
+            *args.class_list,
         ]
-    ]
+        subprocess.run(cmd, stdout=SYS_STDOUT, stderr=SYS_STDERR, check=True)
 
-    window = sg.Window(title="OpenLabeling Launcher", layout=layout, margins=(80, 15))
-    while True:
-        event, values = window.read()
-        if event == "Exit" or event == sg.WIN_CLOSED:
-            break
-
-        if event == "-JSON-":
-            classes_json_fp = Path(values["-JSON-"])
-            with open(str(classes_json_fp), "r") as file_obj:
-                classes_dict = json.load(file_obj)
-                #class_ids = list(classes_dict.keys())
-                class_list = [class_info["label"] for class_id, class_info in classes_dict.items()]
-            print("Loaded classes: [" + ", ".join(class_list) + "]")
-
-        # Folder name was filled in, make a list of files in the folder
-        if event == "-FOLDER-":
-            folder = Path(values["-FOLDER-"])
-            check_if_folder_contains_sufficient_images(input_dir=folder)
-
-            def call_run_app(folder):
-                cmd = [
-                    str(POETRY_APP),
-                    "run",
-                    "python",
-                    str(SCRIPT_PATH),
-                    "-i",
-                    str(folder),
-                    "-c",
-                    *class_list,
-                ]
-                subprocess.run(cmd, stdout=SYS_STDOUT, stderr=SYS_STDERR, check=True)
-
-            open_labeling_thread = threading.Thread(
-                target=call_run_app,  # Pointer to function that will launch OpenLabeling.
-                name="OpenLabelingMain",
-                args=[folder],
-            )
-            open_labeling_thread.start()
-
-            window.close()
+    open_labeling_thread = threading.Thread(
+        target=call_run_app,  # Pointer to function that will launch OpenLabeling.
+        name="OpenLabelingMain",
+        args=[args.root_folder],
+    )
+    open_labeling_thread.start()
 
 
 if __name__ == "__main__":
@@ -136,8 +97,26 @@ if __name__ == "__main__":
     main(args=parsed_args)
 
 
+TEST_CLASSES = ["D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+                "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH",
+                "AI", "AJ", "AK", "AL"]
+
+TEST_ROOT_DIR = Path(__file__).parent.parent / "tests" / "test_data" / "Photos"
+
+
 def test_launch():
     class Args:
-        class_list = None
+        class_list = TEST_CLASSES
+        root_folder = TEST_ROOT_DIR
 
     main(args=Args())
+
+
+def test_launcher():
+    test_dir = Path("/media/david/PortableSSD/traffic_signs_dataset/Beaudesert_Road_Calamvale")
+    assert test_dir.exists()
+    assert test_dir.is_dir()
+
+    sys.argv[1] = f"-f={test_dir}"
+    args = get_args()
+    main(args)

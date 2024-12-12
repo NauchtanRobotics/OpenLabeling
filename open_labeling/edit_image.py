@@ -2,7 +2,7 @@ import argparse
 import sys
 import subprocess
 import threading
-import PySimpleGUI as sg
+
 from pathlib import Path
 
 if sys.platform == "win32":
@@ -18,85 +18,72 @@ POETRY_APP = result.splitlines()[0]
 POETRY_APP = Path(POETRY_APP.decode("utf-8"))
 SCRIPT_PATH = Path(__file__).parent / "run_app.py"
 
-CLASS_LIST = ["D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]
-
 
 def get_args():
     parser = argparse.ArgumentParser(description="Open-source image labeling tool")
     parser.add_argument(
         "-c",
         "--class-list",
-        default=None,
+        required=True,
         nargs="*",
         help="Pass in the class list instead of reading from txt file.",
+    )
+    parser.add_argument(
+        "-f",
+        "--image_path",
+        type=str,
+        nargs="*",
+        required=True,
+        help="The full path to image. Annotation should be in a sub-folder 'YOLO_Darknet' of the image folder. "
+             "Comma separate (without spaces) if more than one image path selected.",
     )
     args = parser.parse_args()
     return args
 
 
 def main(args):
-    if args.class_list:
-        class_list = args.class_list
-        print("\nUsing class List provided: ")
-    else:
-        class_list = CLASS_LIST
-        print("\nAssuming class List: ")
-    print(class_list)
-
+    print("\nClass List: ")
+    print(args.class_list)
+    print(args.image_path)
     if not POETRY_APP.exists():
         raise Exception("\nPoetry app not found: {}".format(str(POETRY_APP)))
+
     if not SCRIPT_PATH.exists():
         raise Exception("\nApp path not found: {}".format(str(SCRIPT_PATH)))
 
-    file_list_column = [
-        [
-            sg.Text("Select Image"),
-            sg.In(size=(40, 1), enable_events=True, key="-FILE-"),
-            sg.FileBrowse(),
-        ],
-    ]
+    # Check if any paths are non-existent
+    if not isinstance(args.image_path, list):
+        image_paths = [args.image_path]
+    else:
+        image_paths = args.image_path
 
-    # ----- Full layout -----
-    layout = [
-        [
-            sg.Column(file_list_column),
+    for path_str in image_paths:
+        if not Path(path_str).exists():
+            raise RuntimeError("Image does not exist: " + path_str)
+
+    def call_run_app():
+        cmd = [
+            str(POETRY_APP),
+            "run",
+            "python",
+            str(SCRIPT_PATH),
+            "-c",
+            *args.class_list,
+            "--files-list",
         ]
-    ]
+        cmd.extend(image_paths)
+        print(" ".join(cmd))
+        subprocess.run(cmd, stdout=SYS_STDOUT, stderr=SYS_STDERR, check=True)
 
-    window = sg.Window(title="OpenLabeling Launcher", layout=layout, margins=(80, 15))
-    while True:
-        event, values = window.read()
-        if event == "Exit" or event == sg.WIN_CLOSED:
-            break
-
-        # Folder name was filled in, make a list of files in the folder
-        if event == "-FILE-":
-            path = Path(values["-FILE-"])
-
-            def call_run_app(file_path):
-                cmd = [
-                    str(POETRY_APP),
-                    "run",
-                    "python",
-                    str(SCRIPT_PATH),
-                    "--files-list",
-                    str(file_path),
-                    "-c",
-                    *class_list,
-                ]
-                subprocess.run(cmd, stdout=SYS_STDOUT, stderr=SYS_STDERR, check=True)
-
-            open_labeling_thread = threading.Thread(
-                target=call_run_app,  # Pointer to function that will launch OpenLabeling.
-                name="OpenLabelingMain",
-                args=[path],
-            )
-            open_labeling_thread.start()
-
-            window.close()
+    open_labeling_thread = threading.Thread(
+        target=call_run_app,  # Pointer to function that will launch OpenLabeling.
+        name="OpenLabelingMain",
+        #args=image_paths,
+    )
+    open_labeling_thread.start()
 
 
-def run():
+def run():  # used by entry-points??
     args = get_args()
     main(args=args)
 
@@ -106,8 +93,28 @@ if __name__ == "__main__":
     main(args=parsed_args)
 
 
-def test_launch_label_image():
+TEST_CLASSES = ["D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+              "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD"]
+TEST_IMAGE_1 = (
+    Path(__file__).parent.parent / "tests" / "test_data" / "Photos" / "Photo_2018_May_31_10_06_44_296_00_stripping8.jpg"
+)
+TEST_IMAGE_2 = (
+    Path(__file__).parent.parent / "tests" / "test_data" / "Photos" / "Photo_2018_May_31_10_06_45_707_00_stripping8.jpg"
+)
+MULTI_SELECTED_LIST = [str(TEST_IMAGE_1), str(TEST_IMAGE_2)]
+
+
+def test_launch_one_image():
     class Args:
-        class_list = None
+        class_list = TEST_CLASSES
+        image_path = [str(TEST_IMAGE_1)]
+
+    main(args=Args())
+
+
+def test_launch_multi_selected_images():
+    class Args:
+        class_list = TEST_CLASSES
+        image_path = MULTI_SELECTED_LIST
 
     main(args=Args())

@@ -1,5 +1,4 @@
 import argparse
-import PySimpleGUI as Sg
 import json
 import pyperclip
 import os
@@ -1096,26 +1095,35 @@ def complement_bgr(color):
 def delete_image():
     # Create the Window
     global tracker_dir, img_index, image_paths_list, current_img_in_video_path
-    layout = [[Sg.Text("Are you sure that you want to delete this image permanently?")],
-              [Sg.OK(), Sg.Cancel()]]
-    windowSg = Sg.Window("Confirm Delete", layout)
-    # Event Loop to process "events"
-    while True:
-        event, values = windowSg.read()
-        if event in (Sg.WIN_CLOSED, "Cancel"):
-            break
-        elif event == "OK":
-            if current_img_in_video_path is None:
-                break
-            img_path = Path(image_paths_list[img_index])
-            annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
-            image_paths_list.remove(img_path)
-            load_image_at_index(img_index)
-            os.unlink(str(img_path))
-            os.unlink(str(annotation_path))
-            break
+    # Consider using tkinter to make a popup to confirm deletion.
 
-    windowSg.close()
+    img_path = Path(image_paths_list[img_index])
+    annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
+    image_paths_list.remove(img_path)
+    load_image_at_index(img_index)
+    os.unlink(str(img_path))
+    os.unlink(str(annotation_path))
+    # PySimpleGUI removed because it went commercial.
+    # layout = [[Sg.Text("Are you sure that you want to delete this image permanently?")],
+    #           [Sg.OK(), Sg.Cancel()]]
+    # windowSg = Sg.Window("Confirm Delete", layout)
+    # # Event Loop to process "events"
+    # while True:
+    #     event, values = windowSg.read()
+    #     if event in (Sg.WIN_CLOSED, "Cancel"):
+    #         break
+    #     elif event == "OK":
+    #         if current_img_in_video_path is None:
+    #             break
+    #         img_path = Path(image_paths_list[img_index])
+    #         annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
+    #         image_paths_list.remove(img_path)
+    #         load_image_at_index(img_index)
+    #         os.unlink(str(img_path))
+    #         os.unlink(str(annotation_path))
+    #         break
+    #
+    # windowSg.close()
 
 
 def main(args):
