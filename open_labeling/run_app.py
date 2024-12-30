@@ -412,7 +412,11 @@ def get_txt_object_data(obj, img_width, img_height):
     centerY = float(centerY)
 
     class_index = int(classId)
-    class_name = CLASS_LIST[class_index]
+    if class_index >= len(CLASS_LIST):
+        # print(f"Class number {str(class_index)} unknown. Can't draw.") won't print.
+        class_name = "OMG"
+    else:
+        class_name = CLASS_LIST[class_index]
     xmin = int(img_width * centerX - img_width * bbox_width / 2.0)
     xmax = int(img_width * centerX + img_width * bbox_width / 2.0)
     ymin = int(img_height * centerY - img_height * bbox_height / 2.0)
@@ -474,14 +478,18 @@ def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
             with open(ann_path) as fp:
                 for idx, line in enumerate(fp):
                     obj = line
-                    (
-                        class_name,
-                        class_index,
-                        xmin,
-                        ymin,
-                        xmax,
-                        ymax,
-                    ) = get_txt_object_data(obj, width, height)
+                    results = get_txt_object_data(obj, width, height)
+                    if results is not None:
+                        (
+                            class_name,
+                            class_index,
+                            xmin,
+                            ymin,
+                            xmax,
+                            ymax,
+                        ) = results
+                    else:
+                        continue  # box related to an unknown class
                     # print('{} {} {} {} {}'.format(class_index, xmin, ymin, xmax, ymax))
                     img_objects.append([class_index, xmin, ymin, xmax, ymax])
                     color = class_rgb[class_index].tolist()
