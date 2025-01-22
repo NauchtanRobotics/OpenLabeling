@@ -1487,7 +1487,22 @@ if __name__ == "__main__":
 def test_main():
     global parsed_args
     # BASE_DIR = Path(__file__).parents[1] / "tests" / "test_data" / "Photos"
-    BASE_DIR = Path("/home/david/production/sealed_roads_dataset/Toowoomba_2023_1")
+    default_class_list = (
+        "D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+        "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH"
+    )
+    BASE_DIR = Path.home() / "Documents/traffic_signs_dataset/biker_mates_images_rotated"
+    assert BASE_DIR.exists()
+    potential_src_file = BASE_DIR.parent / "classes.json"
+    my_class_list = []
+    if not potential_src_file.exists():
+        print("You didn't provide an arg for classes (-c). Defaulting to dummy test classes.")
+        my_class_list = default_class_list
+    else:  # load the keys from this json file
+        with open(str(potential_src_file), 'r') as file:
+            # Parse the JSON data from the file into a Python dictionary
+            classes_info = json.load(file)
+            my_class_list = [val["label"] for _, val in classes_info.items()]
 
     class Args:
         goto = None
@@ -1498,10 +1513,7 @@ def test_main():
         n_frames = 200
         files_list = None
         draw_from_PASCAL_files = False
-        class_list = (
-            "D00", "D10", "D20", "D40", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
-            "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "AA", "AB", "AC", "AD", "AE", "AF", "AG", "AH"
-        )
+        class_list = my_class_list
 
     parsed_args = Args()
     main(args=parsed_args)
