@@ -16,6 +16,17 @@ from open_labeling.load_classes import (
     update_class_list_from_args,
 )
 
+
+substitutions = {
+    ord("g"): 7,  # give way
+    ord("r"): 9,  # 114 # regulated
+    ord("t"): 8,  # stop
+    ord("f"): 5,  # TMP
+    ord("v"): 3,  # RMO
+    ord("c"): 10  # RD
+}
+recode_key_ords = [str(key) for key in substitutions.keys()]
+
 CLASS_RGB = [
     (0, 0, 255),  # 0
     (255, 0, 0),
@@ -1428,9 +1439,11 @@ def main(args):
             # quit key listener
             elif pressed_key == ord("q"):
                 break
-            elif pressed_key == ord("f") and is_bbox_selected:
+            elif pressed_key in list(substitutions.keys()) and selected_bbox != -1 and is_bbox_selected:
+                print("Selected box:")
+                print(selected_bbox)
                 obj_to_edit = img_objects[selected_bbox]
-                change_class_to_fail(obj_to_edit)
+                change_class_per_shortcut_substitution(obj_to_edit, pressed_key)
                 is_bbox_selected = False
                 prev_was_double_click = False
                 reset_drag_points()
@@ -1446,16 +1459,21 @@ def main(args):
     cv2.destroyAllWindows()
 
 
-def change_class_to_fail(obj_to_edit):
+def change_class_per_shortcut_substitution(obj_to_edit, pressed_key):
     global current_img_in_video_path
     _class_idx, _x_min, _y_min, _x_max, _y_max = map(int, obj_to_edit)
-    _new_class_idx = "17"
+
     img_path = Path(image_paths_list[img_index])
     '''img_path = Path(current_img_path)  # current_img_path only seems to be used in video frames'''
     annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
     with open(annotation_path, "r") as old_file:
         lines = old_file.readlines()
-
+    # print("pressed key:")
+    # print(pressed_key)
+    # assert True == False
+    _new_class_idx: int = substitutions.get(pressed_key)
+    if _new_class_idx is None:
+        return
     new_yolo_line = yolo_format(
         _new_class_idx,
         (_x_min, _y_min),
