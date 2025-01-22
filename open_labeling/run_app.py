@@ -23,7 +23,8 @@ substitutions = {
     ord("t"): 8,  # stop
     ord("f"): 5,  # TMP
     ord("v"): 3,  # RMO
-    ord("c"): 10  # RD
+    ord("c"): 10,  # RD
+    ord("n"): 26  # Number Plate
 }
 recode_key_ords = [str(key) for key in substitutions.keys()]
 
