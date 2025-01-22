@@ -507,7 +507,7 @@ def draw_bboxes_from_file(tmp_img, annotation_paths, width, height):
                     color = class_rgb[class_index].tolist()
                     # draw bbox
                     thickness_multiple = int(class_index / 15)
-                    line_thickness = base_level_line_thickness + thickness_multiple
+                    line_thickness = base_level_line_thickness + 1  # constant thickness + thickness_multiple
                     cv2.rectangle(
                         tmp_img, (xmin, ymin), (xmax, ymax), color, line_thickness
                     )
