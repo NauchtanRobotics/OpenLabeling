@@ -1439,16 +1439,27 @@ def main(args):
             # quit key listener
             elif pressed_key == ord("q"):
                 break
-            elif pressed_key in list(substitutions.keys()) and selected_bbox != -1 and is_bbox_selected:
-                print("Selected box:")
-                print(selected_bbox)
-                obj_to_edit = img_objects[selected_bbox]
-                change_class_per_shortcut_substitution(obj_to_edit, pressed_key)
-                is_bbox_selected = False
-                prev_was_double_click = False
-                reset_drag_points()
-                selected_bbox = -1
-                #load_image_at_index(img_index)
+            elif pressed_key in list(substitutions.keys()):
+                print("Pressed key:")
+                # print(pressed_key)
+                print(f"{chr(pressed_key)}")
+                _new_class_idx: int = substitutions.get(pressed_key, None)
+                set_selected_bbox(_new_class_idx)
+                if is_bbox_selected and _new_class_idx is not None:  # and selected_bbox != -1
+                    print("box selected for class change")
+                    obj_to_edit = img_objects[selected_bbox]
+                    change_class_per_shortcut_substitution(obj_to_edit, _new_class_idx)
+                    is_bbox_selected = False
+                    prev_was_double_click = False
+                    reset_drag_points()
+                    selected_bbox = -1
+                    #load_image_at_index(img_index)
+                elif _new_class_idx is None:
+                    print("_new_class_idx is None")
+                    # will never get here because key is not in substitutions.
+                elif not is_bbox_selected:
+                    print(f"You weren't hovering over a box when you clicked to change to class {_new_class_idx}")
+
             """ Key Listeners END """
 
         if WITH_QT:
@@ -1459,7 +1470,7 @@ def main(args):
     cv2.destroyAllWindows()
 
 
-def change_class_per_shortcut_substitution(obj_to_edit, pressed_key):
+def change_class_per_shortcut_substitution(obj_to_edit, _new_class_idx):
     global current_img_in_video_path
     _class_idx, _x_min, _y_min, _x_max, _y_max = map(int, obj_to_edit)
 
@@ -1468,12 +1479,10 @@ def change_class_per_shortcut_substitution(obj_to_edit, pressed_key):
     annotation_path = img_path.parent / "YOLO_darknet" / f"{img_path.stem}.txt"
     with open(annotation_path, "r") as old_file:
         lines = old_file.readlines()
-    # print("pressed key:")
-    # print(pressed_key)
-    # assert True == False
-    _new_class_idx: int = substitutions.get(pressed_key)
-    if _new_class_idx is None:
-        return
+
+    print("changing to class idx:")
+    print(_new_class_idx)
+
     new_yolo_line = yolo_format(
         _new_class_idx,
         (_x_min, _y_min),
